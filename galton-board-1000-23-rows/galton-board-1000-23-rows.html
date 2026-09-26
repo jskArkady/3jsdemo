@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>260720 V1 — The Shape of Chance</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #050711;
+      --graphite: #0a1020;
+      --mint: #7ca8ff;
+      --mint-soft: #c2d4ff;
+      --brass: #d8c5ff;
+      --parchment: #f1f4ff;
+      --muted: rgba(210, 220, 246, 0.72);
+      --glass: rgba(10, 17, 35, 0.62);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+      user-select: none;
+    }
+    body {
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, #1d2f59 0%, #0a1123 42%, #040611 76%, #02030a 100%);
+    }
+    button { font: inherit; }
+    #stage {
+      position: relative;
+      width: min(100vw, 56.25svh);
+      aspect-ratio: 9 / 16;
+      max-height: 100svh;
+      container: galton / inline-size;
+      overflow: hidden;
+      isolation: isolate;
+      background: #080d1d;
+      box-shadow:
+        0 36px 110px rgba(0, 0, 0, 0.64),
+        0 0 0 1px rgba(190, 209, 255, 0.06);
+    }
+    #stage::before,
+    #stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    #stage::before {
+      z-index: 2;
+      opacity: 0.16;
+      background-image:
+        repeating-radial-gradient(circle at 17% 23%, transparent 0 1px, rgba(224, 234, 255, .052) 1.4px 1.8px),
+        repeating-linear-gradient(104deg, transparent 0 7px, rgba(125, 157, 224, .024) 8px 9px);
+      background-size: 7px 7px, 23px 29px;
+      mix-blend-mode: soft-light;
+    }
+    #stage::after {
+      z-index: 3;
+      background:
+        linear-gradient(115deg, rgba(255, 255, 255, .045), transparent 18%, transparent 78%, rgba(139, 168, 255, .03)),
+        radial-gradient(ellipse at 50% 45%, transparent 48%, rgba(0, 0, 0, .18) 73%, rgba(0, 0, 0, .58) 110%);
+      box-shadow: inset 0 0 46px rgba(0, 0, 0, .28);
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #identity {
+      position: absolute;
+      top: 5.8%;
+      left: 6.7%;
+      z-index: 5;
+      color: var(--parchment);
+      font-family: Georgia, "Times New Roman", serif;
+      pointer-events: none;
+      opacity: 0;
+      text-shadow: 0 2px 22px rgba(0, 0, 0, .5);
+      animation: reveal 1.2s .2s cubic-bezier(.16,1,.3,1) forwards;
+    }
+    #identity::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: -22px -48px -24px -22px;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 25% 46%, rgba(4, 7, 18, .86) 0 34%, rgba(4, 7, 18, .6) 52%, rgba(4, 7, 18, .18) 69%, transparent 79%);
+      filter: blur(5px);
+    }
+    #identity .index {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 9px;
+      color: rgba(181, 203, 255, .78);
+      font: 600 11px/1.2 system-ui, sans-serif;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+    }
+    #identity .index::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 12px rgba(124, 168, 255, .72);
+    }
+    #identity h1 {
+      margin: 0;
+      font-size: clamp(28px, 4.25svh, 39px);
+      font-weight: 400;
+      line-height: .91;
+      letter-spacing: -.047em;
+    }
+    #identity p {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 11px 0 0;
+      color: var(--muted);
+      font: 500 11px/1.3 system-ui, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    #identity p span + span::before {
+      content: "/";
+      margin-right: 8px;
+      color: rgba(216, 197, 255, .62);
+    }
+    #legend {
+      position: absolute;
+      top: 6.2%;
+      right: 6.5%;
+      z-index: 5;
+      display: grid;
+      gap: 7px;
+      padding: 10px 11px;
+      color: rgba(220, 228, 248, .7);
+      border: 1px solid rgba(195, 210, 247, .2);
+      background: rgba(7, 11, 25, .68);
+      backdrop-filter: blur(14px);
+      font: 600 11px/1 system-ui, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    #legend span { display: flex; align-items: center; gap: 8px; }
+    #legend i { display: block; width: 18px; height: 2px; background: currentColor; }
+    #legend .observed { color: var(--mint-soft); }
+    #legend .observed i {
+      width: 14px;
+      height: 7px;
+      border: 1px solid rgba(255, 255, 255, .36);
+      background: linear-gradient(135deg, rgba(255, 255, 255, .52), currentColor 58%, rgba(124, 168, 255, .28));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 0 8px rgba(194, 212, 255, .24);
+      opacity: .82;
+    }
+    #legend .expected { color: var(--brass); }
+    #legend .expected i {
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .7), currentColor 48%, rgba(142, 110, 212, .36));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .46), 0 0 8px currentColor;
+      opacity: .86;
+    }
+    #legend .axis-key {
+      padding-top: 2px;
+      color: rgba(226, 232, 249, .76);
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: none;
+    }
+    #control-deck {
+      position: absolute;
+      left: max(6.5%, env(safe-area-inset-left));
+      right: max(6.5%, env(safe-area-inset-right));
+      bottom: max(3.2%, env(safe-area-inset-bottom));
+      z-index: 6;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px 14px;
+    }
+    #telemetry {
+      flex: 1 1 172px;
+      max-width: 250px;
+      min-width: 160px;
+      padding: 9px 11px 8px;
+      border: 1px solid rgba(183, 202, 242, .15);
+      background: var(--glass);
+      box-shadow: 0 13px 32px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .035);
+      backdrop-filter: blur(18px) saturate(1.1);
+      color: rgba(218, 226, 248, .72);
+      font: 600 11px/1.2 system-ui, sans-serif;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .telemetry-row,
+    .telemetry-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #run-state { color: var(--mint-soft); }
+    #sample-count { color: var(--parchment); font-variant-numeric: tabular-nums; }
+    .progress-track {
+      height: 2px;
+      margin: 7px 0 6px;
+      overflow: hidden;
+      background: rgba(159, 181, 231, .16);
+    }
+    #progress-bar {
+      display: block;
+      width: 100%;
+      height: 100%;
+      transform: scaleX(0);
+      transform-origin: 0 50%;
+      background: linear-gradient(90deg, #668fff, var(--mint-soft));
+      box-shadow: 0 0 8px rgba(124, 168, 255, .6);
+      transition: transform 180ms ease-out;
+    }
+    .telemetry-meta { color: rgba(207, 217, 242, .74); font-size: 11px; letter-spacing: .06em; }
+    #controls { display: flex; align-items: center; gap: 6px; }
+    .control-button {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid rgba(188, 204, 240, .17);
+      border-radius: 0;
+      background: rgba(8, 13, 29, .74);
+      color: rgba(231, 235, 248, .84);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .04);
+      backdrop-filter: blur(16px);
+      cursor: pointer;
+      font: 600 11px/1 system-ui, sans-serif;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transition: transform 160ms ease, color 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+    .control-button:hover {
+      color: var(--mint-soft);
+      background: rgba(24, 37, 72, .9);
+      border-color: rgba(124, 168, 255, .42);
+      transform: translateY(-1px);
+    }
+    .control-button:active { transform: translateY(1px); }
+    .control-button:disabled {
+      cursor: default;
+      opacity: .48;
+      transform: none;
+    }
+    .control-button:focus-visible {
+      outline: 2px solid var(--mint);
+      outline-offset: 3px;
+    }
+    .control-icon { font-size: 14px; line-height: 1; }
+    #reset { color: #d8c5ff; border-color: rgba(216, 197, 255, .24); }
+    #speed { min-width: 46px; padding-inline: 10px; font-variant-numeric: tabular-nums; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .noscript-message {
+      position: absolute;
+      z-index: 12;
+      left: 50%;
+      top: 50%;
+      width: min(430px, calc(100% - 40px));
+      margin: 0;
+      padding: 18px 20px;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(216, 197, 255, .48);
+      background: rgba(6, 9, 22, .95);
+      color: var(--parchment);
+      font: 500 14px/1.5 system-ui, sans-serif;
+      text-align: center;
+    }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(12px); filter: blur(5px); }
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+    @container galton (max-width: 520px) {
+      #identity { top: 4.3%; left: 5.5%; }
+      #identity h1 { font-size: 26px; }
+      #identity .index { font-size: 10px; letter-spacing: .16em; }
+      #identity p { font-size: 11px; letter-spacing: .07em; }
+      #identity p span:last-child { display: none; }
+      #legend { top: 4.5%; right: max(5.2%, env(safe-area-inset-right)); padding: 8px; font-size: 11px; letter-spacing: .08em; }
+      #legend i { width: 14px; }
+      #control-deck {
+        left: max(5%, env(safe-area-inset-left));
+        right: max(5%, env(safe-area-inset-right));
+        bottom: max(2.3%, env(safe-area-inset-bottom));
+        gap: 6px;
+      }
+      #telemetry {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: none;
+        padding: 7px 8px 6px;
+        font-size: 11px;
+        letter-spacing: .045em;
+      }
+      .telemetry-meta { font-size: 11px; }
+      #controls { flex: 0 0 auto; gap: 4px; margin-left: 0; }
+      .control-button { min-width: 38px; min-height: 42px; padding-inline: 8px; }
+      .control-button .label { display: none; }
+      #speed { min-width: 44px; padding-inline: 7px; }
+    }
+    @container galton (max-width: 340px) {
+      #identity h1 { font-size: 24px; }
+      #identity p { font-size: 10px; }
+      #legend {
+        gap: 5px;
+        padding: 7px;
+        font-size: 0;
+      }
+      #legend .observed::after,
+      #legend .expected::after {
+        font: 600 10px/1 system-ui, sans-serif;
+        letter-spacing: .08em;
+      }
+      #legend .observed::after { content: "OBS"; }
+      #legend .expected::after { content: "EXP"; }
+      #legend .axis-key { display: none; }
+      #telemetry { padding: 6px; font-size: 10px; }
+      .telemetry-meta { display: none; }
+    }
+    #stage.is-paused #identity { animation-play-state: paused; }
+    @media (prefers-reduced-motion: reduce) {
+      #identity { animation: none; opacity: 1; }
+      #progress-bar, .control-button { transition: none; }
+      @container galton (max-width: 520px) {
+        #pause-label { display: inline; }
+        #speed { display: none; }
+      }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="stage" aria-label="The Shape of Chance, an interactive Galton board releasing 1000 independent trials over two seconds" aria-describedby="screen-summary distribution-summary">
+    <header id="identity">
+      <span class="index">Kinetic study · 0720</span>
+      <h1>The Shape<br>of Chance</h1>
+      <p><span>1000 trials · 2s release</span><span>n = 23 · independent</span></p>
+    </header>
+    <aside id="legend" aria-label="Chart legend">
+      <span class="observed"><i aria-hidden="true"></i>Observed</span>
+      <span class="expected"><i aria-hidden="true"></i>Expected · p=.5</span>
+      <span class="axis-key">live n · k = right turns</span>
+    </aside>
+    <footer id="control-deck">
+      <output id="telemetry">
+        <span class="telemetry-row">
+          <span id="run-state">Releasing</span>
+          <span id="sample-count">0000/1000</span>
+        </span>
+        <span class="progress-track" aria-hidden="true"><span id="progress-bar"></span></span>
+        <span class="telemetry-meta">
+          <span id="seed-readout">Seed 260720</span>
+          <span id="moment-readout">μ —</span>
+        </span>
+      </output>
+      <span id="live-status" class="sr-only" aria-live="polite" aria-atomic="true"></span>
+      <nav id="controls" aria-label="Simulation controls">
+        <button id="pause" class="control-button" type="button" aria-label="Pause simulation" aria-pressed="false" disabled>
+          <span id="pause-icon" class="control-icon" aria-hidden="true">Ⅱ</span>
+          <span id="pause-label" class="label">Pause</span>
+        </button>
+        <button id="speed" class="control-button" type="button" aria-label="Simulation speed, one times" disabled>1×</button>
+        <button id="reset" class="control-button" type="button" aria-label="Start a new random run" disabled>
+          <span class="control-icon" aria-hidden="true">↻</span>
+          <span class="label">New run</span>
+        </button>
+      </nav>
+    </footer>
+    <p id="screen-summary" class="sr-only">A live probability experiment with 1000 independent physical trials released over two seconds. Every active ball responds to gravity, drag, pin impacts, guide rails, and slot walls while ball-to-ball collisions are ignored. Pale blue glass bars show observed outcomes; the lilac glass curve shows the expected binomial distribution.</p>
+    <p id="distribution-summary" class="sr-only">No outcomes have been observed yet.</p>
+    <noscript><p class="noscript-message">This probability experiment needs JavaScript and WebGL. Enable JavaScript to run the simulation.</p></noscript>
+  </main>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+    import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+    const stage = document.getElementById("stage");
+    const resetButton = document.getElementById("reset");
+    const pauseButton = document.getElementById("pause");
+    const pauseIcon = document.getElementById("pause-icon");
+    const pauseLabel = document.getElementById("pause-label");
+    const speedButton = document.getElementById("speed");
+    const runState = document.getElementById("run-state");
+    const sampleCount = document.getElementById("sample-count");
+    const progressBar = document.getElementById("progress-bar");
+    const seedReadout = document.getElementById("seed-readout");
+    const momentReadout = document.getElementById("moment-readout");
+    const distributionSummary = document.getElementById("distribution-summary");
+    const liveStatus = document.getElementById("live-status");
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const prefersReducedMotion = reducedMotionQuery.matches;
+    const supportsParallax = window.matchMedia("(pointer: fine)").matches && !prefersReducedMotion;
+    reducedMotionQuery.addEventListener?.("change", () => window.location.reload());
+    const speedOptions = [0.5, 1, 2];
+    let speedIndex = 1;
+    let userPaused = false;
+    let pageHidden = document.hidden;
+    let contextLost = false;
+    let countersDirty = true;
+    let lastTelemetryCount = -1;
+    let elapsedTime = 0;
+    let lastFrameTime = performance.now() * 0.001;
+
+    function stageSize() {
+      return {
+        width: Math.max(1, stage.clientWidth),
+        height: Math.max(1, stage.clientHeight)
+      };
+    }
+
+    // Scene and renderer
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      depth: true,
+      stencil: false,
+      precision: "highp",
+      preserveDrawingBuffer: false,
+      powerPreference: "high-performance"
+    });
+    const initialStageSize = stageSize();
+    const gl = renderer.getContext();
+    const rendererInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    const rendererName = rendererInfo
+      ? String(gl.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL) || "")
+      : "";
+    const softwareRenderer = /swiftshader|llvmpipe|software/i.test(rendererName);
+    const lowPowerDevice = softwareRenderer
+      || (navigator.hardwareConcurrency || 8) <= 4
+      || (navigator.deviceMemory || 8) <= 4;
+    const maxPixelRatio = lowPowerDevice ? 1.5 : 2;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio));
+    renderer.setSize(initialStageSize.width, initialStageSize.height, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.9;
+    renderer.shadowMap.enabled = !lowPowerDevice;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.domElement.setAttribute("aria-hidden", "true");
+    stage.appendChild(renderer.domElement);
+    renderer.domElement.addEventListener("webglcontextlost", (event) => {
+      event.preventDefault();
+      contextLost = true;
+      updateTelemetry(true);
+    });
+    renderer.domElement.addEventListener("webglcontextrestored", () => {
+      contextLost = false;
+      physicsAccumulator = 0;
+      renderer.shadowMap.autoUpdate = true;
+      renderer.shadowMap.needsUpdate = true;
+      shadowMapFrozen = false;
+      lastFrameTime = performance.now() * 0.001;
+      renderRequested = true;
+      updateTelemetry(true);
+    });
+
+    const scene = new THREE.Scene();
+
+    function makeSceneBackgroundTexture() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 1365;
+      const context = canvas.getContext("2d");
+      const field = context.createRadialGradient(512, 500, 20, 512, 590, 790);
+      field.addColorStop(0, "#203a70");
+      field.addColorStop(0.3, "#101d3b");
+      field.addColorStop(0.68, "#080d1d");
+      field.addColorStop(1, "#03040b");
+      context.fillStyle = field;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const topGlow = context.createLinearGradient(0, 0, 0, canvas.height);
+      topGlow.addColorStop(0, "rgba(132, 173, 255, .1)");
+      topGlow.addColorStop(0.4, "rgba(0, 0, 0, 0)");
+      topGlow.addColorStop(1, "rgba(0, 0, 0, .18)");
+      context.fillStyle = topGlow;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    scene.background = makeSceneBackgroundTexture();
+    scene.fog = new THREE.FogExp2(0x080d1d, 0.0145);
+
+    const camera = new THREE.PerspectiveCamera(
+      54,
+      initialStageSize.width / initialStageSize.height,
+      0.1,
+      90
+    );
+    const cameraTarget = new THREE.Vector3(0, 0.35, 0.62);
+    const cameraHome = new THREE.Vector3(0, 1.75, 19.2);
+    camera.position.copy(cameraHome);
+    camera.lookAt(cameraTarget);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const room = new RoomEnvironment();
+    const env = pmrem.fromScene(room, 0.03);
+    scene.environment = env.texture;
+    room.dispose();
+    pmrem.dispose();
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0x9dbbff, 0x03040b, 0.42);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xe8edff, 2.4);
+    keyLight.position.set(-5.8, 12.8, 8.6);
+    keyLight.castShadow = true;
+    const shadowMapSize = lowPowerDevice ? 512 : 1024;
+    keyLight.shadow.mapSize.set(shadowMapSize, shadowMapSize);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 42;
+    keyLight.shadow.camera.left = -10;
+    keyLight.shadow.camera.right = 10;
+    keyLight.shadow.camera.top = 11;
+    keyLight.shadow.camera.bottom = -10;
+    keyLight.shadow.bias = -0.00032;
+    keyLight.shadow.normalBias = 0.015;
+    scene.add(keyLight);
+
+    const coolRim = new THREE.PointLight(0x739cff, 3.8, 23, 2);
+    coolRim.position.set(5.5, 3.6, 6.2);
+    scene.add(coolRim);
+
+    const amberCurveLight = new THREE.PointLight(0xc8a7ff, 1.55, 16, 2);
+    amberCurveLight.position.set(-3.6, -4.9, 3.4);
+    scene.add(amberCurveLight);
+
+    const gallerySpot = new THREE.SpotLight(0xdde6ff, 3.3, 38, Math.PI * 0.17, 0.72, 1.55);
+    gallerySpot.position.set(0, 13.5, 10.5);
+    gallerySpot.target.position.set(0, 0.2, 0.5);
+    gallerySpot.castShadow = false;
+    scene.add(gallerySpot, gallerySpot.target);
+
+    // A single restrained light field unifies the entire observation surface.
+    function makeObservationGlowTexture() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 1024;
+      const context = canvas.getContext("2d");
+      const glow = context.createRadialGradient(256, 410, 0, 256, 410, 330);
+      glow.addColorStop(0, "rgba(132, 174, 255, 0.36)");
+      glow.addColorStop(0.42, "rgba(92, 127, 220, 0.14)");
+      glow.addColorStop(1, "rgba(35, 54, 112, 0)");
+      context.fillStyle = glow;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    const acrylicBackMaterial = new THREE.MeshStandardMaterial({
+      color: 0x182b55,
+      roughness: 0.26,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.88,
+      envMapIntensity: 0.58
+    });
+
+    const acrylicFrontMaterial = new THREE.MeshBasicMaterial({
+      color: 0xc4d5ff,
+      transparent: true,
+      opacity: 0.055,
+      depthWrite: false
+    });
+
+    const metalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x101522,
+      roughness: 0.52,
+      metalness: 0.78,
+      envMapIntensity: 0.9
+    });
+
+    const frameInlayMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8f82ba,
+      roughness: 0.24,
+      metalness: 0.82,
+      emissive: 0x392b6d,
+      emissiveIntensity: 0.05,
+      envMapIntensity: 1.0
+    });
+
+    const observationGlowMaterial = new THREE.MeshBasicMaterial({
+      map: makeObservationGlowTexture(),
+      color: 0x82aaff,
+      transparent: true,
+      opacity: 0.07,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    const lowerFieldMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x9ab8ff,
+      roughness: 0.08,
+      metalness: 0,
+      transmission: 0.86,
+      thickness: 0.18,
+      ior: 1.46,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false
+    });
+
+    const pinMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.22,
+      metalness: 0.72,
+      envMapIntensity: 1.18
+    });
+
+    const slotMaterial = new THREE.MeshStandardMaterial({
+      color: 0xcdb8ff,
+      roughness: 0.24,
+      metalness: 0.36,
+      emissive: 0x60429a,
+      emissiveIntensity: 0.2,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+      envMapIntensity: 1.1
+    });
+
+    const beadMaterial = new THREE.MeshStandardMaterial({
+      color: 0x91b4ff,
+      roughness: 0.12,
+      metalness: 0.05,
+      emissive: 0x315fd4,
+      emissiveIntensity: 0.34,
+      envMapIntensity: 1.3
+    });
+
+    const histogramMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc2d4ff,
+      roughness: 0.2,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.86,
+      emissive: 0x426ec7,
+      emissiveIntensity: 0.32,
+      depthWrite: false,
+      envMapIntensity: 1.12
+    });
+
+    const curveMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd8c5ff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      toneMapped: false
+    });
+
+    const curveHaloMaterial = new THREE.MeshBasicMaterial({
+      color: 0xc9adff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    const curveUnderMaterial = new THREE.MeshBasicMaterial({
+      color: 0x070914,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      toneMapped: false
+    });
+
+    const edgeLightMaterial = new THREE.MeshStandardMaterial({
+      color: 0x899bc3,
+      roughness: 0.38,
+      metalness: 0.5,
+      emissive: 0x334575,
+      emissiveIntensity: 0.02,
+      envMapIntensity: 0.86
+    });
+
+    // Board geometry
+    const ROWS = 23;
+    const BIN_COUNT = ROWS + 1;
+    const BEAD_COUNT = 1000;
+    const DATE_SEED = 260720;
+    const BOARD_DENSITY_SCALE = 0.7;
+    const PIN_SPACING = 0.64 * BOARD_DENSITY_SCALE;
+    const ROW_GAP = 0.58 * BOARD_DENSITY_SCALE;
+    const PIN_TOP_Y = 6.72;
+    const PIN_BOTTOM_Y = PIN_TOP_Y - (ROWS - 1) * ROW_GAP;
+    const BEAD_RADIUS = 0.112 * BOARD_DENSITY_SCALE;
+    const PIN_CAP_RADIUS = 0.064 * BOARD_DENSITY_SCALE;
+    const SLOT_DIVIDER_HALF_WIDTH = 0.022 * BOARD_DENSITY_SCALE;
+    const SLOT_TOP_Y = PIN_BOTTOM_Y - PIN_CAP_RADIUS - SLOT_DIVIDER_HALF_WIDTH;
+    const SLOT_FLOOR_Y = -7.18;
+    const SLOT_PASSAGE_CLEARANCE = BEAD_RADIUS + SLOT_DIVIDER_HALF_WIDTH + 0.01 * BOARD_DENSITY_SCALE;
+    const SLOT_ENTRY_Y = SLOT_TOP_Y + BEAD_RADIUS * 0.55;
+    const GUIDE_RAIL_RADIUS = 0.065 * BOARD_DENSITY_SCALE;
+    const EDGE_BRANCH_MARGIN = 0.018 * BOARD_DENSITY_SCALE;
+    const EDGE_SLOPE = PIN_SPACING / (ROW_GAP * 2);
+    const EDGE_WALL_OFFSET = PIN_SPACING * 0.5 + BEAD_RADIUS + GUIDE_RAIL_RADIUS + EDGE_BRANCH_MARGIN;
+    const BEAD_Z = 1.04;
+    const FRONT_Z = 1.42;
+    const ORIGIN_Y = 7.48;
+    const ORIGIN_Z = BEAD_Z;
+
+    // Physics solver
+    const GRAVITY = -13.25;
+    const FIXED_DT = 1 / 120;
+    const MAX_STEPS = 24;
+    const PIN_RESTITUTION = 0.52;
+    const RELEASE_DURATION = 2;
+    const RELEASE_INTERVAL = RELEASE_DURATION / (BEAD_COUNT - 1);
+    const MAX_ACTIVE_BEADS = BEAD_COUNT;
+
+    // Shared release channel; beads deliberately ignore one another.
+    const THROAT_TOP_Y = ORIGIN_Y;
+    const THROAT_BOTTOM_Y = PIN_TOP_Y + 0.28;
+    const THROAT_EXIT_RADIUS = 0.026;
+    const THROAT_ENTRY_RADIUS = 0.072;
+
+    const device = new THREE.Group();
+    scene.add(device);
+
+    // Board assembly
+    function addRoundedBox(width, height, depth, x, y, z, material, radius = 0.06) {
+      const mesh = new THREE.Mesh(new RoundedBoxGeometry(width, height, depth, lowPowerDevice ? 2 : 4, radius), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      device.add(mesh);
+      return mesh;
+    }
+
+    const acrylicBack = addRoundedBox(12.55, 16.45, 0.16, 0, 0.48, 0.2, acrylicBackMaterial, 0.24);
+    acrylicBack.renderOrder = 1;
+
+    const observationGlow = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.2, 14.9),
+      observationGlowMaterial
+    );
+    observationGlow.position.set(0, 0.56, 0.31);
+    observationGlow.renderOrder = 1;
+    device.add(observationGlow);
+
+    const lowerField = new THREE.Mesh(
+      new THREE.PlaneGeometry(10.2, 5.12),
+      lowerFieldMaterial
+    );
+    lowerField.position.set(0, -4.62, 0.34);
+    lowerField.renderOrder = 1;
+    device.add(lowerField);
+
+    // A single glass collector surface keeps the lower assembly visually quiet.
+    const collectorCover = addRoundedBox(
+      12.08,
+      0.88,
+      0.14,
+      0,
+      -7.38,
+      1.3,
+      lowerFieldMaterial,
+      0.05
+    );
+    collectorCover.castShadow = false;
+    collectorCover.renderOrder = 6;
+
+    const frontPane = addRoundedBox(12.18, 16.05, 0.035, 0, 0.46, FRONT_Z, acrylicFrontMaterial, 0.18);
+    frontPane.renderOrder = 4;
+    frontPane.castShadow = false;
+
+    // Slim graphite shell with one continuous violet inlay.
+    addRoundedBox(13.02, 0.26, 0.46, 0, 8.72, 0.69, metalMaterial, 0.065);
+    addRoundedBox(13.02, 0.28, 0.46, 0, -7.66, 0.69, metalMaterial, 0.065);
+    addRoundedBox(0.25, 16.22, 0.46, -6.39, 0.52, 0.69, metalMaterial, 0.065);
+    addRoundedBox(0.25, 16.22, 0.46, 6.39, 0.52, 0.69, metalMaterial, 0.065);
+
+    const frameInlays = [
+      addRoundedBox(12.53, 0.034, 0.045, 0, 8.56, 0.96, frameInlayMaterial, 0.012),
+      addRoundedBox(12.53, 0.034, 0.045, 0, -7.76, 1.39, frameInlayMaterial, 0.012),
+      addRoundedBox(0.034, 16.08, 0.045, -6.255, 0.535, 0.96, frameInlayMaterial, 0.012),
+      addRoundedBox(0.034, 16.08, 0.045, 6.255, 0.535, 0.96, frameInlayMaterial, 0.012)
+    ];
+    frameInlays.forEach((inlay) => {
+      inlay.castShadow = false;
+      inlay.receiveShadow = false;
+    });
+
+    const fastenerGeometry = new THREE.SphereGeometry(0.075, lowPowerDevice ? 10 : 16, lowPowerDevice ? 6 : 10);
+    const fastenerMesh = new THREE.InstancedMesh(fastenerGeometry, frameInlayMaterial, 4);
+    const fastenerDummy = new THREE.Object3D();
+    [
+      [-6.08, 8.34], [6.08, 8.34],
+      [-6.08, -7.28], [6.08, -7.28]
+    ].forEach(([x, y], index) => {
+      fastenerDummy.position.set(x, y, 1.08);
+      fastenerDummy.rotation.set(0, 0, 0);
+      fastenerDummy.scale.setScalar(1);
+      fastenerDummy.updateMatrix();
+      fastenerMesh.setMatrixAt(index, fastenerDummy.matrix);
+    });
+    fastenerMesh.castShadow = false;
+    device.add(fastenerMesh);
+
+    const dustRandom = mulberry32(DATE_SEED ^ 0x51f15e);
+    const dustPositions = new Float32Array(180 * 3);
+    for (let i = 0; i < 180; i++) {
+      dustPositions[i * 3] = (dustRandom() - 0.5) * 11.7;
+      dustPositions[i * 3 + 1] = (dustRandom() - 0.5) * 15.5 + 0.5;
+      dustPositions[i * 3 + 2] = 0.28 + dustRandom() * 0.18;
+    }
+    const dustGeometry = new THREE.BufferGeometry();
+    dustGeometry.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
+    const dustMaterial = new THREE.PointsMaterial({
+      color: 0xa9bfff,
+      size: 0.027,
+      transparent: true,
+      opacity: 0.16,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const ambientDust = new THREE.Points(dustGeometry, dustMaterial);
+    ambientDust.renderOrder = 1;
+    device.add(ambientDust);
+
+    const originStemMaterial = new THREE.MeshStandardMaterial({
+      color: 0xe4ebff,
+      roughness: 0.18,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.18,
+      emissive: 0x355fc4,
+      emissiveIntensity: 0.12,
+      depthWrite: false,
+      envMapIntensity: 0.8,
+      side: THREE.DoubleSide
+    });
+
+    const originGlowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x759fff,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const originRingMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc9b6ff,
+      roughness: 0.16,
+      metalness: 0.76,
+      emissive: 0x6f55ad,
+      emissiveIntensity: 0.1,
+      envMapIntensity: 1.1
+    });
+
+    const originGroup = new THREE.Group();
+    originGroup.position.set(0, ORIGIN_Y, ORIGIN_Z);
+    device.add(originGroup);
+
+    const originHalo = new THREE.Mesh(
+      new THREE.CircleGeometry(0.38, lowPowerDevice ? 24 : 40),
+      originGlowMaterial
+    );
+    originHalo.position.z = -0.055;
+    originGroup.add(originHalo);
+
+    const originRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.29, 0.018, lowPowerDevice ? 5 : 8, lowPowerDevice ? 36 : 64),
+      originRingMaterial
+    );
+    originRing.position.z = 0.018;
+    originRing.castShadow = true;
+    originGroup.add(originRing);
+
+    const originStem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.052, 0.04, 0.46, lowPowerDevice ? 12 : 22),
+      originStemMaterial
+    );
+    originStem.position.set(0, -0.47, 0);
+    originStem.castShadow = true;
+    originStem.renderOrder = 3;
+    originGroup.add(originStem);
+
+    const originPointLight = new THREE.PointLight(0x759fff, 1.5, 3.2, 2);
+    originPointLight.position.set(0, 0, 0.35);
+    originGroup.add(originPointLight);
+
+    const originWaves = [];
+    for (let i = 0; i < 3; i++) {
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x93b2ff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const wave = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.008, 5, lowPowerDevice ? 28 : 48), material);
+      wave.position.z = -0.035;
+      wave.userData.phase = i / 3;
+      originGroup.add(wave);
+      originWaves.push(wave);
+    }
+
+    function edgeRailCenterAtY(y) {
+      return EDGE_WALL_OFFSET + (PIN_TOP_Y - y) * EDGE_SLOPE;
+    }
+
+    function addGuideRail(side) {
+      const points = [
+        new THREE.Vector3(side * edgeRailCenterAtY(PIN_TOP_Y + 0.62), PIN_TOP_Y + 0.62, 1.02)
+      ];
+      for (let row = 0; row < ROWS; row++) {
+        const y = PIN_TOP_Y - row * ROW_GAP;
+        points.push(new THREE.Vector3(side * edgeRailCenterAtY(y), y, 1.02));
+      }
+      points.push(new THREE.Vector3(
+        side * edgeRailCenterAtY(SLOT_TOP_Y),
+        SLOT_TOP_Y,
+        1.02
+      ));
+
+      const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.5);
+      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, lowPowerDevice ? 64 : 96, GUIDE_RAIL_RADIUS, lowPowerDevice ? 6 : 8, false), metalMaterial);
+      rail.castShadow = true;
+      rail.receiveShadow = true;
+      device.add(rail);
+
+      const highlight = new THREE.Mesh(new THREE.TubeGeometry(curve, lowPowerDevice ? 64 : 96, 0.018, lowPowerDevice ? 5 : 7, false), edgeLightMaterial);
+      highlight.position.z += 0.08;
+      highlight.castShadow = false;
+      device.add(highlight);
+    }
+    addGuideRail(-1);
+    addGuideRail(1);
+
+    const pinPositions = [];
+    const rowPins = [];
+    for (let row = 0; row < ROWS; row++) {
+      const count = row + 1;
+      const y = PIN_TOP_Y - row * ROW_GAP;
+      rowPins[row] = [];
+      for (let col = 0; col < count; col++) {
+        const x = (col - row * 0.5) * PIN_SPACING;
+        const pin = { x, y, row, index: pinPositions.length };
+        pinPositions.push(pin);
+        rowPins[row].push(pin);
+      }
+    }
+
+    const dummy = new THREE.Object3D();
+    const pinHeat = new Float32Array(pinPositions.length);
+    const pinBaseColor = new THREE.Color(0x151b2b);
+    const pinHotColor = new THREE.Color(0x9db9ff);
+    const tmpColor = new THREE.Color();
+    const pinGeometry = new THREE.CylinderGeometry(
+      0.052 * BOARD_DENSITY_SCALE,
+      0.052 * BOARD_DENSITY_SCALE,
+      0.72,
+      lowPowerDevice ? 10 : 18
+    );
+    const pinMesh = new THREE.InstancedMesh(pinGeometry, pinMaterial, pinPositions.length);
+    pinMesh.castShadow = true;
+    pinMesh.receiveShadow = true;
+    pinPositions.forEach((pin, i) => {
+      dummy.position.set(pin.x, pin.y, 0.72);
+      dummy.rotation.set(Math.PI / 2, 0, 0);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      pinMesh.setMatrixAt(i, dummy.matrix);
+      pinMesh.setColorAt(i, pinBaseColor);
+    });
+    device.add(pinMesh);
+
+    const capGeometry = new THREE.SphereGeometry(PIN_CAP_RADIUS, lowPowerDevice ? 10 : 16, lowPowerDevice ? 6 : 9);
+    const capMesh = new THREE.InstancedMesh(capGeometry, pinMaterial, pinPositions.length);
+    capMesh.castShadow = false;
+    capMesh.receiveShadow = true;
+    pinPositions.forEach((pin, i) => {
+      dummy.position.set(pin.x, pin.y, 1.1);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      capMesh.setMatrixAt(i, dummy.matrix);
+      capMesh.setColorAt(i, pinBaseColor);
+    });
+    device.add(capMesh);
+
+    function updatePinHeat(delta, snap = false) {
+      let changed = false;
+      for (let i = 0; i < pinHeat.length; i++) {
+        const next = snap ? 0 : Math.max(0, pinHeat[i] - delta * 2.45);
+        if (!snap && next === pinHeat[i] && next === 0) continue;
+        pinHeat[i] = next;
+        tmpColor.copy(pinBaseColor).lerp(pinHotColor, Math.pow(next, 0.72));
+        pinMesh.setColorAt(i, tmpColor);
+        capMesh.setColorAt(i, tmpColor);
+        changed = true;
+      }
+      if (changed || snap) {
+        pinMesh.instanceColor.needsUpdate = true;
+        capMesh.instanceColor.needsUpdate = true;
+      }
+    }
+
+    const slotBoundaryLeft = -BIN_COUNT * PIN_SPACING * 0.5;
+    const slotVisualTopY = SLOT_TOP_Y + SLOT_DIVIDER_HALF_WIDTH;
+    const slotVisualBottomY = SLOT_FLOOR_Y - 0.08;
+    const slotHeight = slotVisualTopY - slotVisualBottomY;
+    const slotCenterY = (slotVisualTopY + slotVisualBottomY) * 0.5;
+
+    const lcdCellWidth = 96;
+    const lcdCanvas = document.createElement("canvas");
+    lcdCanvas.width = BIN_COUNT * lcdCellWidth;
+    lcdCanvas.height = 112;
+    const lcdContext = lcdCanvas.getContext("2d");
+    const lcdTexture = new THREE.CanvasTexture(lcdCanvas);
+    lcdTexture.colorSpace = THREE.SRGBColorSpace;
+    lcdTexture.minFilter = THREE.LinearFilter;
+    lcdTexture.magFilter = THREE.LinearFilter;
+
+    const lcdDigitsMaterial = new THREE.MeshBasicMaterial({
+      map: lcdTexture,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false
+    });
+
+    const lcdDigits = new THREE.Mesh(
+      new THREE.PlaneGeometry(BIN_COUNT * PIN_SPACING - 0.08, 0.58),
+      lcdDigitsMaterial
+    );
+    lcdDigits.position.set(0, -7.38, 1.414);
+    lcdDigits.renderOrder = 3;
+    device.add(lcdDigits);
+
+    const lcdPulse = new Array(BIN_COUNT).fill(0);
+    const axisBins = new Set([0, 4, 8, 12, 16, 20, ROWS]);
+    function drawAxisLabel(context, value, centerX) {
+      context.fillStyle = "rgba(226, 232, 249, .88)";
+      context.shadowColor = "rgba(124, 168, 255, .42)";
+      context.shadowBlur = 4;
+      context.font = '500 52px "Arial Narrow", "Roboto Condensed", "Liberation Sans Narrow", sans-serif';
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(String(value), centerX, 58, lcdCellWidth - 8);
+    }
+
+    function drawSlotCounters() {
+      lcdContext.clearRect(0, 0, lcdCanvas.width, lcdCanvas.height);
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        if (!axisBins.has(bin)) continue;
+        const cellX = bin * lcdCellWidth;
+        drawAxisLabel(lcdContext, bin, cellX + lcdCellWidth * 0.5);
+      }
+      lcdContext.shadowBlur = 0;
+      lcdTexture.needsUpdate = true;
+    }
+
+    function updateLCDPulses(delta) {
+      let redraw = false;
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        if (lcdPulse[bin] <= 0) continue;
+        lcdPulse[bin] = Math.max(0, lcdPulse[bin] - delta * 7.5);
+        redraw = true;
+      }
+      if (redraw) countersDirty = true;
+    }
+
+    const dividerGeometry = new RoundedBoxGeometry(
+      SLOT_DIVIDER_HALF_WIDTH * 2,
+      slotHeight,
+      0.34,
+      lowPowerDevice ? 2 : 3,
+      0.018 * BOARD_DENSITY_SCALE
+    );
+    const dividerMesh = new THREE.InstancedMesh(dividerGeometry, slotMaterial, BIN_COUNT + 1);
+    dividerMesh.castShadow = true;
+    dividerMesh.receiveShadow = true;
+    for (let i = 0; i <= BIN_COUNT; i++) {
+      dummy.position.set(slotBoundaryLeft + i * PIN_SPACING, slotCenterY, 1.02);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      dividerMesh.setMatrixAt(i, dummy.matrix);
+    }
+    device.add(dividerMesh);
+
+    function binCenterX(bin) {
+      return (bin - (BIN_COUNT - 1) * 0.5) * PIN_SPACING;
+    }
+
+    function binomial(n, k) {
+      let value = 1;
+      for (let i = 1; i <= k; i++) value = value * (n - i + 1) / i;
+      return value;
+    }
+
+    // Ideal binomial reference curve
+    const binomialProfile = [];
+    const binomialProbabilities = [];
+    const centerProbability = binomial(ROWS, Math.floor(ROWS / 2)) / Math.pow(2, ROWS);
+    for (let bin = 0; bin < BIN_COUNT; bin++) {
+      const probability = binomial(ROWS, bin) / Math.pow(2, ROWS);
+      binomialProbabilities.push(probability);
+      binomialProfile.push(probability / centerProbability);
+    }
+
+    const histogramMaxHeight = SLOT_TOP_Y - SLOT_FLOOR_Y - 0.22;
+    const histogramExpectedPeakCount = BEAD_COUNT * centerProbability;
+    const histogramMaxCount = histogramExpectedPeakCount * 1.15;
+    const histogramHeightPerCount = histogramMaxHeight / histogramMaxCount;
+    function histogramHeightForCount(count) {
+      return clamp(count * histogramHeightPerCount, 0, histogramMaxHeight);
+    }
+    const histogramCurrent = new Array(BIN_COUNT).fill(0);
+    const histogramTarget = new Array(BIN_COUNT).fill(0);
+    const histogramGeometry = new RoundedBoxGeometry(PIN_SPACING * 0.72, 1, 0.11, lowPowerDevice ? 2 : 4, 0.028);
+    const histogramMesh = new THREE.InstancedMesh(histogramGeometry, histogramMaterial, BIN_COUNT);
+    histogramMesh.castShadow = false;
+    histogramMesh.receiveShadow = false;
+    histogramMesh.renderOrder = 2;
+    device.add(histogramMesh);
+
+    function updateHistogramInstances(delta, snap = false) {
+      const blend = snap ? 1 : 1 - Math.exp(-8 * delta);
+      let changed = false;
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        const previousHeight = histogramCurrent[bin];
+        histogramCurrent[bin] += (histogramTarget[bin] - histogramCurrent[bin]) * blend;
+        if (Math.abs(histogramTarget[bin] - histogramCurrent[bin]) < 0.00025) {
+          histogramCurrent[bin] = histogramTarget[bin];
+        }
+        if (!snap && histogramCurrent[bin] === previousHeight) continue;
+        const height = Math.max(0, histogramCurrent[bin]);
+        const visible = height > 0.0005;
+        dummy.position.set(binCenterX(bin), SLOT_FLOOR_Y + (visible ? height * 0.5 : 0), 0.55);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(visible ? 1 : 0, visible ? height : 0, 1);
+        dummy.updateMatrix();
+        histogramMesh.setMatrixAt(bin, dummy.matrix);
+        changed = true;
+      }
+      if (changed) histogramMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    updateHistogramInstances(0, true);
+
+    const expectedPeakHeight = histogramHeightForCount(histogramExpectedPeakCount);
+    const expectedCurveGroup = new THREE.Group();
+    device.add(expectedCurveGroup);
+    const curvePoints = [];
+    for (let bin = 0; bin < BIN_COUNT; bin++) {
+      curvePoints.push(new THREE.Vector3(
+        binCenterX(bin),
+        SLOT_FLOOR_Y + Math.max(0.008, binomialProfile[bin] * expectedPeakHeight),
+        1.49
+      ));
+    }
+    const curvePath = new THREE.CatmullRomCurve3(curvePoints);
+    const curveHalo = new THREE.Mesh(new THREE.TubeGeometry(curvePath, lowPowerDevice ? 72 : 112, 0.065, lowPowerDevice ? 6 : 8, false), curveHaloMaterial);
+    curveHalo.castShadow = false;
+    curveHalo.renderOrder = 6;
+    expectedCurveGroup.add(curveHalo);
+
+    const curveUnder = new THREE.Mesh(new THREE.TubeGeometry(curvePath, lowPowerDevice ? 72 : 112, 0.045, lowPowerDevice ? 5 : 7, false), curveUnderMaterial);
+    curveUnder.castShadow = false;
+    curveUnder.renderOrder = 7;
+    expectedCurveGroup.add(curveUnder);
+
+    const curveLine = new THREE.Mesh(new THREE.TubeGeometry(curvePath, lowPowerDevice ? 72 : 112, 0.036, lowPowerDevice ? 5 : 7, false), curveMaterial);
+    curveLine.castShadow = false;
+    curveLine.renderOrder = 8;
+    expectedCurveGroup.add(curveLine);
+
+    const beadGeometry = new THREE.SphereGeometry(BEAD_RADIUS, lowPowerDevice ? 10 : 16, lowPowerDevice ? 7 : 10);
+    const beadMesh = new THREE.InstancedMesh(beadGeometry, beadMaterial, MAX_ACTIVE_BEADS);
+    beadMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    beadMesh.castShadow = false;
+    beadMesh.receiveShadow = false;
+    beadMesh.frustumCulled = false;
+    beadMesh.renderOrder = 5;
+    device.add(beadMesh);
+
+    function mulberry32(seed) {
+      return function random() {
+        seed |= 0;
+        seed = seed + 0x6d2b79f5 | 0;
+        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function smoothstep(edge0, edge1, value) {
+      const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
+
+    function railHalfWidthAtY(y) {
+      if (y > PIN_TOP_Y) {
+        if (y >= THROAT_BOTTOM_Y) {
+          const throatT = smoothstep(THROAT_BOTTOM_Y, THROAT_TOP_Y, y);
+          return THROAT_EXIT_RADIUS
+            + (THROAT_ENTRY_RADIUS - THROAT_EXIT_RADIUS) * throatT;
+        }
+        const t = smoothstep(PIN_TOP_Y, THROAT_BOTTOM_Y, y);
+        const firstBranchLimit = PIN_SPACING * 0.5 + EDGE_BRANCH_MARGIN;
+        return firstBranchLimit + (THROAT_EXIT_RADIUS - firstBranchLimit) * t;
+      }
+      if (y > SLOT_TOP_Y) {
+        return edgeRailCenterAtY(y) - GUIDE_RAIL_RADIUS - BEAD_RADIUS;
+      }
+      return BIN_COUNT * PIN_SPACING * 0.5 - BEAD_RADIUS;
+    }
+
+    // Simulation state
+    let runIndex = 0;
+    let random = mulberry32(DATE_SEED);
+    const beads = [];
+    const slotCounts = new Array(BIN_COUNT).fill(0);
+    const stats = {
+      frame: 0,
+      beadCount: BEAD_COUNT,
+      binCount: BIN_COUNT,
+      settled: 0,
+      exited: 0,
+      active: 0,
+      simulatedActive: 0,
+      peakActive: 0,
+      renderCapacity: MAX_ACTIVE_BEADS,
+      released: 0,
+      seed: DATE_SEED,
+      bins: new Array(BIN_COUNT).fill(0),
+      sample: null,
+      physicsHz: Math.round(1 / FIXED_DT),
+      paused: false,
+      speed: speedOptions[speedIndex],
+      releaseDuration: RELEASE_DURATION,
+      beadCollisionsEnabled: false,
+      progress: 0,
+      mean: 0,
+      variance: 0,
+      maxSlotCorrection: 0,
+      correctedSlots: 0,
+      pinContacts: 0,
+      ccdContacts: 0,
+      beadContacts: 0,
+      physicsFailures: 0,
+      maxPinPenetration: 0,
+      maxBeadPenetration: 0,
+      maxNormalImpulse: 0,
+      maxDividerPenetration: 0,
+      minPinSurfaceMargin: null,
+      minBeadSurfaceMargin: null,
+      minSlotMargin: null,
+      lastFailure: null,
+      quality: lowPowerDevice ? "economy" : "standard",
+      renderer: rendererName || "unavailable",
+      histogramHeightPerCount,
+      histogramMaxCount
+    };
+    window.__galtonBoard260720V1Stats = stats;
+
+    function makeBead(index) {
+      const decisions = [];
+      const kicks = [];
+      let targetBin = 0;
+      for (let row = 0; row < ROWS; row++) {
+        const direction = random() > 0.5 ? 1 : -1;
+        decisions.push(direction);
+        kicks.push(0.84 + random() * 0.42);
+        if (direction > 0) targetBin++;
+      }
+
+      return {
+        index,
+        state: "waiting",
+        releaseAt: index * RELEASE_INTERVAL,
+        position: new THREE.Vector3(0, ORIGIN_Y, ORIGIN_Z),
+        velocity: new THREE.Vector3(0, 0, 0),
+        decisions,
+        kicks,
+        targetBin,
+        walkX: 0,
+        nextRow: 0,
+        phase: random() * Math.PI * 2,
+        spinAngle: random() * Math.PI * 2,
+        angularVelocity: 0,
+        scale: 1,
+        slotIndex: -1,
+        counted: false
+      };
+    }
+
+    function resetSimulation(randomize = false) {
+      if (randomize) runIndex++;
+      const entropy = randomize ? ((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0) : 0;
+      const seed = randomize
+        ? ((DATE_SEED ^ entropy ^ Math.imul(runIndex, 0x85ebca6b)) >>> 0) || DATE_SEED
+        : DATE_SEED;
+      random = mulberry32(seed);
+      stats.seed = seed;
+      stats.settled = 0;
+      stats.exited = 0;
+      stats.active = 0;
+      stats.simulatedActive = 0;
+      stats.peakActive = 0;
+      stats.released = 0;
+      stats.frame = 0;
+      stats.sample = null;
+      stats.progress = 0;
+      stats.mean = 0;
+      stats.variance = 0;
+      stats.maxSlotCorrection = 0;
+      stats.correctedSlots = 0;
+      stats.pinContacts = 0;
+      stats.ccdContacts = 0;
+      stats.beadContacts = 0;
+      stats.physicsFailures = 0;
+      stats.maxPinPenetration = 0;
+      stats.maxBeadPenetration = 0;
+      stats.maxNormalImpulse = 0;
+      stats.maxDividerPenetration = 0;
+      stats.minPinSurfaceMargin = null;
+      stats.minBeadSurfaceMargin = null;
+      stats.minSlotMargin = null;
+      stats.lastFailure = null;
+      stats.bins.fill(0);
+      slotCounts.fill(0);
+      lcdPulse.fill(0);
+      histogramCurrent.fill(0);
+      histogramTarget.fill(0);
+      updateHistogramInstances(0, true);
+      pinHeat.fill(0);
+      updatePinHeat(0, true);
+      beads.length = 0;
+
+      physicsAccumulator = 0;
+      simulationTime = 0;
+      releaseElapsed = 0;
+      for (let i = 0; i < BEAD_COUNT; i++) beads.push(makeBead(i));
+
+      countersDirty = true;
+      lastTelemetryCount = -1;
+      userPaused = false;
+      stage.classList.remove("is-paused");
+      renderRequested = true;
+      if (prefersReducedMotion) {
+        settleReducedMotionRun();
+        userPaused = true;
+      }
+      updateBeadInstances();
+      updateTelemetry(true);
+    }
+
+    function failPhysics(bead, reason) {
+      if (bead.state === "failed") return;
+      bead.state = "failed";
+      stats.physicsFailures++;
+      stats.lastFailure = `${reason} at trial ${bead.index + 1}`;
+    }
+
+    function countSlotPassage(bead) {
+      if (bead.counted || bead.slotIndex < 0) return;
+      const bin = bead.slotIndex;
+      bead.counted = true;
+      slotCounts[bin]++;
+      stats.bins[bin] = slotCounts[bin];
+      stats.settled++;
+      stats.progress = stats.settled / BEAD_COUNT;
+      lcdPulse[bin] = 1;
+      countersDirty = true;
+      histogramTarget[bin] = histogramHeightForCount(slotCounts[bin]);
+    }
+
+    function assignSlot(bead) {
+      if (bead.slotIndex >= 0) return true;
+      const bin = clamp(
+        Math.floor((bead.position.x - slotBoundaryLeft) / PIN_SPACING),
+        0,
+        BIN_COUNT - 1
+      );
+      const left = slotBoundaryLeft + bin * PIN_SPACING + SLOT_PASSAGE_CLEARANCE;
+      const right = slotBoundaryLeft + (bin + 1) * PIN_SPACING - SLOT_PASSAGE_CLEARANCE;
+      if (bead.position.x < left || bead.position.x > right) return false;
+      bead.slotIndex = bin;
+      return true;
+    }
+
+    function resolveSlotDividerContact(bead) {
+      const contactRadius = SLOT_PASSAGE_CLEARANCE;
+      if (bead.position.y > SLOT_TOP_Y + contactRadius) return;
+
+      const boundaryIndex = clamp(
+        Math.round((bead.position.x - slotBoundaryLeft) / PIN_SPACING),
+        0,
+        BIN_COUNT
+      );
+      const boundaryX = slotBoundaryLeft + boundaryIndex * PIN_SPACING;
+      let dx = bead.position.x - boundaryX;
+      const fallbackSide = boundaryIndex === 0
+        ? 1
+        : boundaryIndex === BIN_COUNT
+          ? -1
+          : Math.sign(binCenterX(bead.targetBin) - boundaryX) || Math.sign(bead.velocity.x) || 1;
+
+      if (bead.position.y > SLOT_TOP_Y) {
+        const dy = bead.position.y - SLOT_TOP_Y;
+        if (Math.abs(dx) < 0.006) dx = fallbackSide * 0.006;
+        const distance = Math.hypot(dx, dy);
+        if (distance >= contactRadius) return;
+
+        const nx = dx / Math.max(distance, 0.000001);
+        const ny = dy / Math.max(distance, 0.000001);
+        const penetration = contactRadius - distance;
+        bead.position.x += nx * penetration;
+        bead.position.y += ny * penetration;
+        const normalVelocity = bead.velocity.x * nx + bead.velocity.y * ny;
+        if (normalVelocity < 0) {
+          bead.velocity.x -= 1.22 * normalVelocity * nx;
+          bead.velocity.y -= 1.22 * normalVelocity * ny;
+        }
+        stats.maxDividerPenetration = Math.max(stats.maxDividerPenetration, penetration);
+        return;
+      }
+
+      const distanceFromWall = Math.abs(dx);
+      if (distanceFromWall >= contactRadius) return;
+      const side = Math.sign(dx) || fallbackSide;
+      const penetration = contactRadius - distanceFromWall;
+      bead.position.x += side * penetration;
+      if (bead.velocity.x * side < 0) bead.velocity.x *= -0.22;
+      stats.maxDividerPenetration = Math.max(stats.maxDividerPenetration, penetration);
+    }
+
+    function keepInsideDevice(bead) {
+      const limit = Math.max(THROAT_EXIT_RADIUS, railHalfWidthAtY(bead.position.y));
+      if (bead.position.x < -limit) {
+        bead.position.x = -limit;
+        if (bead.velocity.x < 0) {
+          bead.velocity.x *= -0.28;
+          bead.velocity.y *= 0.985;
+        }
+      } else if (bead.position.x > limit) {
+        bead.position.x = limit;
+        if (bead.velocity.x > 0) {
+          bead.velocity.x *= -0.28;
+          bead.velocity.y *= 0.985;
+        }
+      }
+
+      const minZ = bead.position.y > PIN_TOP_Y + 0.55 ? 0.75 : 0.88;
+      const maxZ = 1.24;
+      if (bead.position.z < minZ) {
+        bead.position.z = minZ;
+        if (bead.velocity.z < 0) bead.velocity.z *= -0.32;
+      } else if (bead.position.z > maxZ) {
+        bead.position.z = maxZ;
+        if (bead.velocity.z > 0) bead.velocity.z *= -0.32;
+      }
+
+      // Keep every independent trajectory aligned with the shared origin axis.
+      if (bead.position.y <= THROAT_TOP_Y && bead.position.y >= THROAT_BOTTOM_Y) {
+        const throatT = smoothstep(THROAT_BOTTOM_Y, THROAT_TOP_Y, bead.position.y);
+        const centerLimit = THROAT_EXIT_RADIUS
+          + (THROAT_ENTRY_RADIUS - THROAT_EXIT_RADIUS) * throatT;
+        const dx = bead.position.x;
+        const dz = bead.position.z - BEAD_Z;
+        const radialDistance = Math.hypot(dx, dz);
+        if (radialDistance > centerLimit) {
+          const nx = dx / radialDistance;
+          const nz = dz / radialDistance;
+          bead.position.x = nx * centerLimit;
+          bead.position.z = BEAD_Z + nz * centerLimit;
+          const outwardSpeed = bead.velocity.x * nx + bead.velocity.z * nz;
+          if (outwardSpeed > 0) {
+            bead.velocity.x -= nx * outwardSpeed * 1.32;
+            bead.velocity.z -= nz * outwardSpeed * 1.32;
+          }
+        }
+      }
+    }
+
+    function applyDecisionKick(bead, previousY) {
+      while (bead.nextRow < ROWS) {
+        const rowY = PIN_TOP_Y - bead.nextRow * ROW_GAP;
+        if (!(previousY >= rowY + 0.055 && bead.position.y <= rowY + 0.055)) break;
+        const direction = bead.decisions[bead.nextRow];
+        bead.walkX += direction * PIN_SPACING * 0.5;
+        const travelTime = ROW_GAP / Math.max(1.45, Math.abs(bead.velocity.y));
+        const targetVelocity = (bead.walkX - bead.position.x) / Math.max(0.1, travelTime);
+        const texture = 0.9 + (bead.kicks[bead.nextRow] - 0.84) * 0.18;
+        bead.velocity.x = bead.velocity.x * 0.14 + clamp(targetVelocity * texture, -2.4, 2.4) * 0.86;
+        bead.velocity.y = Math.min(bead.velocity.y * 0.78, -0.24);
+        bead.velocity.z += Math.sin(bead.phase + bead.nextRow * 1.73) * 0.085;
+        bead.nextRow++;
+      }
+    }
+
+    function resolvePinCollisions(bead) {
+      const minDistance = BEAD_RADIUS + PIN_CAP_RADIUS;
+      const minDistanceSq = minDistance * minDistance;
+      const rowGuess = Math.round((PIN_TOP_Y - bead.position.y) / ROW_GAP);
+
+      for (let row = Math.max(0, rowGuess - 1); row <= Math.min(ROWS - 1, rowGuess + 1); row++) {
+        const pins = rowPins[row];
+        for (let i = 0; i < pins.length; i++) {
+          const pin = pins[i];
+          const dx = bead.position.x - pin.x;
+          const dy = bead.position.y - pin.y;
+          if (Math.abs(dx) > 0.31 || Math.abs(dy) > 0.31) continue;
+          const distanceSq = dx * dx + dy * dy;
+          if (distanceSq >= minDistanceSq) continue;
+
+          const distance = Math.sqrt(Math.max(distanceSq, 0.000001));
+          const nx = dx / distance;
+          const ny = dy / distance;
+          const push = minDistance - distance + 0.004;
+          bead.position.x += nx * push;
+          bead.position.y += ny * push;
+          stats.maxPinPenetration = Math.max(stats.maxPinPenetration, Math.max(0, minDistance - distance));
+
+          const normalVelocity = bead.velocity.x * nx + bead.velocity.y * ny;
+          if (normalVelocity < 0) {
+            const impulse = -(1.0 + PIN_RESTITUTION) * normalVelocity;
+            bead.velocity.x += impulse * nx;
+            bead.velocity.y += impulse * ny;
+            stats.pinContacts++;
+            stats.maxNormalImpulse = Math.max(stats.maxNormalImpulse, impulse);
+            pinHeat[pin.index] = Math.min(1, pinHeat[pin.index] + Math.min(0.52, impulse * 0.095));
+          }
+
+          const tx = -ny;
+          const ty = nx;
+          const tangent = bead.velocity.x * tx + bead.velocity.y * ty;
+          bead.velocity.x -= tangent * tx * 0.13;
+          bead.velocity.y -= tangent * ty * 0.13;
+          bead.velocity.x += Math.sin(bead.phase + row * 0.9 + i * 0.33) * 0.022;
+          bead.velocity.z += Math.cos(bead.phase + row * 0.45) * 0.012;
+        }
+      }
+    }
+
+    function enforceParticleBounds() {
+      for (let i = 0; i < beads.length; i++) {
+        const bead = beads[i];
+        if (bead.state === "release" || bead.state === "falling") {
+          keepInsideDevice(bead);
+          const maxSpeed = bead.state === "falling" ? 10.2 : 5.4;
+          if (bead.velocity.lengthSq() > maxSpeed * maxSpeed) bead.velocity.setLength(maxSpeed);
+        }
+      }
+    }
+
+    function stepBead(bead, dt, time, releaseTime) {
+      if (bead.state === "exited" || bead.state === "failed") return;
+
+      if (bead.state === "waiting") {
+        if (releaseTime + 1e-9 < bead.releaseAt) return;
+        bead.state = "release";
+        stats.released++;
+      }
+
+      if (bead.state === "release") {
+        const throatPull = 4.2 + (1 - clamp((bead.position.y - PIN_TOP_Y) / 2.4, 0, 1)) * 8.0;
+        bead.velocity.y += GRAVITY * 0.47 * dt;
+        bead.velocity.x += -bead.position.x * throatPull * dt;
+        bead.velocity.z += (BEAD_Z - bead.position.z) * 6.2 * dt;
+        bead.velocity.x += Math.sin(time * 5.2 + bead.phase) * 0.045 * dt;
+        bead.velocity.multiplyScalar(Math.exp(-2.4 * dt));
+        if (bead.velocity.lengthSq() > 26) bead.velocity.setLength(Math.sqrt(26));
+        bead.position.addScaledVector(bead.velocity, dt);
+        keepInsideDevice(bead);
+        if (bead.position.y <= PIN_TOP_Y + 0.44) {
+          bead.state = "falling";
+          bead.nextRow = 0;
+          bead.velocity.y = Math.min(bead.velocity.y, -0.6);
+        }
+        return;
+      }
+
+      if (bead.state === "falling") {
+        const previousY = bead.position.y;
+        bead.velocity.y += GRAVITY * dt;
+        if (bead.nextRow >= ROWS) {
+          const slotApproachX = binCenterX(bead.targetBin);
+          bead.velocity.x += (slotApproachX - bead.position.x) * 8.5 * dt;
+        }
+        bead.velocity.x += Math.sin(time * 8.0 + bead.phase * 1.7) * 0.028;
+        bead.velocity.z += (BEAD_Z - bead.position.z) * 12.5 * dt;
+        const drag = Math.exp(-0.56 * dt);
+        bead.velocity.x *= drag;
+        bead.velocity.y = Math.max(bead.velocity.y * drag, -9.8);
+        bead.velocity.z *= Math.exp(-2.1 * dt);
+        bead.position.addScaledVector(bead.velocity, dt);
+
+        resolvePinCollisions(bead);
+        applyDecisionKick(bead, previousY);
+        keepInsideDevice(bead);
+
+        if (bead.position.y <= SLOT_TOP_Y + SLOT_PASSAGE_CLEARANCE) {
+          resolveSlotDividerContact(bead);
+        }
+
+        if (bead.position.y <= SLOT_ENTRY_Y && assignSlot(bead)) {
+          bead.state = "draining";
+        }
+        return;
+      }
+
+      if (bead.state === "draining") {
+        const previousY = bead.position.y;
+        const targetX = binCenterX(bead.slotIndex);
+        bead.velocity.y += GRAVITY * 0.72 * dt;
+        bead.velocity.x += (targetX - bead.position.x) * 5.4 * dt;
+        bead.velocity.z += (BEAD_Z - bead.position.z) * 12.5 * dt;
+        bead.velocity.x *= Math.exp(-2.8 * dt);
+        bead.velocity.y = Math.max(bead.velocity.y, -8.4);
+        bead.velocity.z *= Math.exp(-3.4 * dt);
+        bead.position.addScaledVector(bead.velocity, dt);
+
+        const left = slotBoundaryLeft + bead.slotIndex * PIN_SPACING + SLOT_PASSAGE_CLEARANCE;
+        const right = slotBoundaryLeft + (bead.slotIndex + 1) * PIN_SPACING - SLOT_PASSAGE_CLEARANCE;
+        if (bead.position.x < left) {
+          const penetration = left - bead.position.x;
+          bead.position.x = left;
+          if (bead.velocity.x < 0) bead.velocity.x *= -0.22;
+          stats.maxDividerPenetration = Math.max(stats.maxDividerPenetration, penetration);
+        } else if (bead.position.x > right) {
+          const penetration = bead.position.x - right;
+          bead.position.x = right;
+          if (bead.velocity.x > 0) bead.velocity.x *= -0.22;
+          stats.maxDividerPenetration = Math.max(stats.maxDividerPenetration, penetration);
+        }
+
+        if (previousY > SLOT_FLOOR_Y && bead.position.y <= SLOT_FLOOR_Y) {
+          countSlotPassage(bead);
+        }
+
+        if (bead.position.y < SLOT_FLOOR_Y - 0.62) {
+          bead.state = "exited";
+          bead.position.set(0, -30, 0);
+          bead.velocity.set(0, 0, 0);
+        }
+      }
+    }
+
+    let simulationTime = 0;
+    let releaseElapsed = 0;
+    let physicsAccumulator = 0;
+
+    function physicsStep(dt) {
+      simulationTime += dt;
+      for (let i = 0; i < beads.length; i++) {
+        const bead = beads[i];
+        stepBead(bead, dt, simulationTime, releaseElapsed);
+        if (
+          bead.state !== "waiting" && bead.state !== "exited" && bead.state !== "failed"
+          && (!Number.isFinite(bead.position.x) || !Number.isFinite(bead.position.y)
+            || !Number.isFinite(bead.position.z) || !Number.isFinite(bead.velocity.x)
+            || !Number.isFinite(bead.velocity.y) || !Number.isFinite(bead.velocity.z))
+        ) {
+          bead.position.set(0, -30, 0);
+          bead.velocity.set(0, 0, 0);
+          failPhysics(bead, "non-finite motion state");
+        } else if (bead.state !== "waiting" && bead.state !== "exited" && bead.state !== "failed") {
+          const rollingRadius = Math.max(0.001, BEAD_RADIUS * bead.scale);
+          const targetAngularVelocity = clamp(
+            (bead.velocity.x - bead.velocity.y * 0.18) / rollingRadius,
+            -34,
+            34
+          );
+          const angularBlend = 1 - Math.exp(-8 * dt);
+          bead.angularVelocity += (targetAngularVelocity - bead.angularVelocity) * angularBlend;
+          bead.spinAngle += bead.angularVelocity * dt;
+        }
+      }
+      enforceParticleBounds();
+      releaseElapsed += dt;
+    }
+
+    function settleReducedMotionRun() {
+      slotCounts.fill(0);
+      for (let i = 0; i < beads.length; i++) {
+        const bead = beads[i];
+        bead.slotIndex = bead.targetBin;
+        bead.counted = true;
+        bead.state = "exited";
+        bead.position.set(0, -30, 0);
+        bead.velocity.set(0, 0, 0);
+        slotCounts[bead.targetBin]++;
+      }
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        stats.bins[bin] = slotCounts[bin];
+        histogramTarget[bin] = histogramHeightForCount(slotCounts[bin]);
+      }
+      pinHeat.fill(0);
+      updatePinHeat(0, true);
+      lcdPulse.fill(0);
+      countersDirty = true;
+      releaseElapsed = RELEASE_DURATION;
+      stats.released = BEAD_COUNT;
+      stats.settled = BEAD_COUNT;
+      stats.exited = BEAD_COUNT;
+      stats.progress = 1;
+      updateHistogramInstances(0, true);
+    }
+
+    function updateBeadInstances() {
+      let active = 0;
+      let simulatedActive = 0;
+      let exited = 0;
+      let sample = null;
+
+      for (let i = 0; i < beads.length; i++) {
+        const bead = beads[i];
+        if (bead.state === "exited") exited++;
+        if (bead.state === "waiting" || bead.state === "exited") continue;
+        simulatedActive++;
+
+        if (!sample) {
+          sample = [
+            bead.state,
+            Number(bead.position.x.toFixed(2)),
+            Number(bead.position.y.toFixed(2)),
+            Number(bead.position.z.toFixed(2))
+          ];
+        }
+
+        dummy.position.copy(bead.position);
+        dummy.quaternion.identity();
+        dummy.scale.setScalar(bead.scale);
+        dummy.updateMatrix();
+        beadMesh.setMatrixAt(active, dummy.matrix);
+
+        active++;
+      }
+
+      beadMesh.count = active;
+      beadMesh.instanceMatrix.needsUpdate = true;
+      stats.active = active;
+      stats.simulatedActive = simulatedActive;
+      stats.peakActive = Math.max(stats.peakActive, simulatedActive);
+      stats.exited = exited;
+      stats.sample = sample;
+    }
+
+    let lastTelemetryState = "";
+    let lastLiveCount = -32;
+    let lastLiveAnnouncement = 0;
+
+    function updateDistributionMoments(counted) {
+      if (counted <= 0) {
+        stats.mean = 0;
+        stats.variance = 0;
+        momentReadout.textContent = "μ —";
+        distributionSummary.textContent = "No outcomes have been observed yet.";
+        return;
+      }
+      let weightedSum = 0;
+      for (let bin = 0; bin < BIN_COUNT; bin++) weightedSum += bin * slotCounts[bin];
+      const mean = weightedSum / counted;
+      let squaredDistance = 0;
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        squaredDistance += slotCounts[bin] * (bin - mean) * (bin - mean);
+      }
+      stats.mean = mean;
+      stats.variance = squaredDistance / counted;
+      momentReadout.textContent = `μ ${mean.toFixed(2)}`;
+
+      const observed = slotCounts.join(", ");
+      if (counted >= BEAD_COUNT) {
+        const expected = binomialProbabilities.map((probability) => probability * BEAD_COUNT);
+        let largestDeviation = -1;
+        let deviationBin = 0;
+        for (let bin = 0; bin < BIN_COUNT; bin++) {
+          const deviation = Math.abs(slotCounts[bin] - expected[bin]);
+          if (deviation > largestDeviation) {
+            largestDeviation = deviation;
+            deviationBin = bin;
+          }
+        }
+        distributionSummary.textContent = `Complete observed counts for k equals 0 through ${ROWS}: ${observed}. Expected binomial counts, rounded: ${expected.map((value) => Math.round(value)).join(", ")}. Largest absolute deviation is ${largestDeviation.toFixed(1)} at k equals ${deviationBin}.`;
+      } else {
+        distributionSummary.textContent = `Current observed counts for k equals 0 through ${ROWS}: ${observed}. ${counted} of ${BEAD_COUNT} trials complete.`;
+      }
+    }
+
+    function syncControlState() {
+      const complete = stats.settled >= BEAD_COUNT;
+      const physicsFault = stats.physicsFailures > 0;
+      const locked = prefersReducedMotion || complete || contextLost || physicsFault;
+      pauseButton.disabled = locked;
+      speedButton.disabled = locked;
+      if (contextLost) {
+        pauseIcon.textContent = "!";
+        pauseLabel.textContent = "Unavailable";
+        pauseButton.setAttribute("aria-label", "Renderer unavailable");
+        pauseButton.setAttribute("aria-pressed", "false");
+      } else if (physicsFault) {
+        pauseIcon.textContent = "!";
+        pauseLabel.textContent = "Fault";
+        pauseButton.setAttribute("aria-label", "Physics simulation fault");
+        pauseButton.setAttribute("aria-pressed", "false");
+      } else if (prefersReducedMotion) {
+        pauseIcon.textContent = "■";
+        pauseLabel.textContent = "Static";
+        pauseButton.setAttribute("aria-label", "Static reduced-motion result");
+        pauseButton.setAttribute("aria-pressed", "false");
+      } else if (complete) {
+        pauseIcon.textContent = "✓";
+        pauseLabel.textContent = "Complete";
+        pauseButton.setAttribute("aria-label", "Simulation complete");
+        pauseButton.setAttribute("aria-pressed", "false");
+      } else {
+        pauseIcon.textContent = userPaused ? "▶" : "Ⅱ";
+        pauseLabel.textContent = userPaused ? "Resume" : "Pause";
+        pauseButton.setAttribute("aria-label", userPaused ? "Resume simulation" : "Pause simulation");
+        pauseButton.setAttribute("aria-pressed", String(userPaused));
+      }
+    }
+
+    function updateTelemetry(force = false) {
+      const counted = stats.settled;
+      const progress = clamp(counted / BEAD_COUNT, 0, 1);
+      const state = contextLost
+        ? "Renderer paused"
+        : stats.physicsFailures > 0
+          ? "Physics fault"
+        : counted >= BEAD_COUNT
+          ? "Complete"
+          : userPaused
+            ? "Paused"
+            : stats.released < BEAD_COUNT
+              ? "Releasing"
+              : "Resolving";
+      const stateChanged = state !== lastTelemetryState;
+      if (!force && counted === lastTelemetryCount && !stateChanged) return;
+
+      lastTelemetryCount = counted;
+      lastTelemetryState = state;
+      updateDistributionMoments(counted);
+      runState.textContent = state;
+      sampleCount.textContent = `${String(counted).padStart(String(BEAD_COUNT).length, "0")}/${BEAD_COUNT}`;
+      progressBar.style.transform = `scaleX(${progress.toFixed(4)})`;
+      seedReadout.textContent = `Seed ${stats.seed}`;
+      const momentSummary = counted > 0
+        ? ` Observed mean ${stats.mean.toFixed(2)} and variance ${stats.variance.toFixed(2)}.`
+        : "";
+      const announcement = `${state}. ${counted} of ${BEAD_COUNT} outcomes observed.${momentSummary}`;
+      document.getElementById("telemetry").setAttribute(
+        "aria-label",
+        announcement
+      );
+      const now = performance.now();
+      if (
+        force ||
+        stateChanged ||
+        counted === BEAD_COUNT ||
+        counted - lastLiveCount >= 32 ||
+        now - lastLiveAnnouncement >= 1000
+      ) {
+        liveStatus.textContent = announcement;
+        lastLiveCount = counted;
+        lastLiveAnnouncement = now;
+      }
+      stats.progress = progress;
+      stats.paused = userPaused || contextLost;
+      stats.speed = speedOptions[speedIndex];
+      syncControlState();
+    }
+
+    function updatePauseControl() {
+      syncControlState();
+      updateTelemetry(true);
+    }
+
+    function setPaused(nextPaused) {
+      if (prefersReducedMotion || contextLost || stats.physicsFailures > 0 || stats.settled >= BEAD_COUNT) return;
+      userPaused = nextPaused;
+      stage.classList.toggle("is-paused", userPaused);
+      physicsAccumulator = 0;
+      renderRequested = true;
+      updatePauseControl();
+    }
+
+    function cycleSpeed() {
+      if (prefersReducedMotion || contextLost || stats.physicsFailures > 0 || stats.settled >= BEAD_COUNT) return;
+      speedIndex = (speedIndex + 1) % speedOptions.length;
+      const speed = speedOptions[speedIndex];
+      const label = Number.isInteger(speed) ? `${speed}×` : `${speed.toFixed(2).replace(/0$/, "")}×`;
+      speedButton.textContent = label;
+      speedButton.setAttribute("aria-label", `Simulation speed, ${speed} times`);
+      stats.speed = speed;
+    }
+
+    const pointerTarget = new THREE.Vector2();
+    const pointerCurrent = new THREE.Vector2();
+    let renderRequested = true;
+
+    function fitCamera() {
+      const { width, height } = stageSize();
+      camera.aspect = width / height;
+      camera.fov = 58 - smoothstep(0.58, 0.75, camera.aspect) * 4;
+      camera.updateProjectionMatrix();
+      const halfFovTangent = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
+      const landscapeBlend = smoothstep(0.78, 1.28, camera.aspect);
+      const framingHeight = 18.1 + landscapeBlend * 4.1;
+      const distanceForHeight = framingHeight / (2 * halfFovTangent);
+      const distanceForWidth = 13.15 / (2 * halfFovTangent * camera.aspect);
+      const cameraDistance = Math.max(17.5, distanceForHeight, distanceForWidth);
+      const cameraHomeY = 1.1 + smoothstep(0.62, 0.78, camera.aspect) * 0.65;
+      cameraHome.set(0, cameraHomeY, cameraTarget.z + cameraDistance);
+      camera.position.copy(cameraHome);
+      camera.lookAt(cameraTarget);
+      const requestedPixelRatio = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
+      const pixelBudget = lowPowerDevice ? 320000 : 2200000;
+      const budgetPixelRatio = Math.sqrt(pixelBudget / Math.max(1, width * height));
+      const pixelRatio = Math.min(requestedPixelRatio, budgetPixelRatio);
+      renderer.setPixelRatio(pixelRatio);
+      renderer.setSize(width, height, false);
+      renderRequested = true;
+    }
+
+    const resizeObserver = new ResizeObserver(fitCamera);
+    resizeObserver.observe(stage);
+
+    if (supportsParallax) {
+      stage.addEventListener("pointermove", (event) => {
+        const bounds = stage.getBoundingClientRect();
+        pointerTarget.set(
+          clamp((event.clientX - bounds.left) / bounds.width * 2 - 1, -1, 1),
+          clamp((event.clientY - bounds.top) / bounds.height * 2 - 1, -1, 1)
+        );
+        renderRequested = true;
+      }, { passive: true });
+      stage.addEventListener("pointerleave", () => {
+        pointerTarget.set(0, 0);
+        renderRequested = true;
+      }, { passive: true });
+    }
+
+    pauseButton.addEventListener("click", () => setPaused(!userPaused));
+    speedButton.addEventListener("click", cycleSpeed);
+    resetButton.setAttribute("aria-label", "Start a new random run");
+    resetButton.addEventListener("click", () => {
+      resetSimulation(true);
+      updatePauseControl();
+      if (!prefersReducedMotion) {
+        resetButton.getAnimations().forEach((animation) => animation.cancel());
+        resetButton.animate(
+          [
+            { transform: "rotate(0deg) scale(1)" },
+            { transform: "rotate(360deg) scale(0.94)" },
+            { transform: "rotate(360deg) scale(1)" }
+          ],
+          { duration: 420, easing: "cubic-bezier(.22,.61,.36,1)" }
+        );
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLInputElement) return;
+      if (event.code === "Space") {
+        event.preventDefault();
+        setPaused(!userPaused);
+      } else if (event.key.toLowerCase() === "r") {
+        resetButton.click();
+      } else if (event.key.toLowerCase() === "s") {
+        cycleSpeed();
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      pageHidden = document.hidden;
+      lastFrameTime = performance.now() * 0.001;
+      if (pageHidden) physicsAccumulator = 0;
+    });
+
+    fitCamera();
+    resetSimulation(false);
+    updatePauseControl();
+
+    let lastRenderedTime = -Infinity;
+    let shadowMapFrozen = false;
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now() * 0.001;
+      const delta = clamp(now - lastFrameTime, 0, 0.5);
+      lastFrameTime = now;
+      if (pageHidden || contextLost) return;
+
+      const motionActive = !userPaused
+        && !prefersReducedMotion
+        && stats.physicsFailures === 0
+        && stats.exited < BEAD_COUNT;
+      const motionDelta = motionActive ? delta : 0;
+      elapsedTime += motionDelta;
+      if (motionActive) {
+        physicsAccumulator = Math.min(
+          physicsAccumulator + delta * speedOptions[speedIndex],
+          FIXED_DT * MAX_STEPS * 2
+        );
+        let steps = 0;
+        while (physicsAccumulator >= FIXED_DT && steps < MAX_STEPS) {
+          physicsStep(FIXED_DT);
+          physicsAccumulator -= FIXED_DT;
+          steps++;
+        }
+      }
+      if (!motionActive && !renderRequested) return;
+
+      const elapsed = elapsedTime;
+      if (stats.exited < BEAD_COUNT || beadMesh.count > 0) updateBeadInstances();
+      updateHistogramInstances(motionDelta, stats.settled >= BEAD_COUNT);
+      if (motionDelta > 0) {
+        updatePinHeat(motionDelta);
+        updateLCDPulses(motionDelta);
+      }
+      if (countersDirty) {
+        drawSlotCounters();
+        countersDirty = false;
+      }
+      updateTelemetry();
+
+      const entrance = prefersReducedMotion ? 1 : 1 - Math.exp(-elapsed * 2.1);
+      device.position.y = (1 - entrance) * 0.46;
+      device.scale.setScalar(0.965 + entrance * 0.035);
+
+      const releaseTail = Math.max(0, releaseElapsed - RELEASE_DURATION);
+      const originPulse = prefersReducedMotion
+        ? 0
+        : (stats.released < BEAD_COUNT
+          ? 0.16 + Math.sin(elapsed * 5.2) * 0.04
+          : 0.16 * Math.exp(-releaseTail * 1.8));
+      const originBreath = prefersReducedMotion ? 1 : 1 + Math.sin(elapsed * 2.4) * 0.035;
+      originHalo.scale.setScalar(originBreath + originPulse * 0.24);
+      originGlowMaterial.opacity = 0.1 + originPulse * 0.28 + (prefersReducedMotion ? 0 : Math.sin(elapsed * 1.8) * 0.025);
+      originRing.scale.setScalar(1 + originPulse * 0.06);
+      originPointLight.intensity = 1.2 + originPulse * 2.2;
+
+      originWaves.forEach((wave) => {
+        const phase = (releaseElapsed * 0.56 + wave.userData.phase) % 1;
+        const waveActive = motionActive && stats.released < BEAD_COUNT;
+        wave.scale.setScalar(1 + phase * 2.2);
+        wave.material.opacity = waveActive ? Math.sin(phase * Math.PI) * 0.075 : 0;
+      });
+
+      const expectedScale = Math.max(0.001, stats.progress);
+      expectedCurveGroup.scale.set(1, expectedScale, 1);
+      expectedCurveGroup.position.y = SLOT_FLOOR_Y * (1 - expectedScale);
+      const curveReveal = prefersReducedMotion ? 1 : smoothstep(0.01, 0.12, stats.progress);
+      curveMaterial.opacity = curveReveal * 0.92;
+      curveUnderMaterial.opacity = curveReveal * 0.28;
+      curveHaloMaterial.opacity = curveReveal * (0.025 + (motionActive ? Math.sin(elapsed * 1.25) * 0.008 : 0));
+
+      if (motionActive) {
+        ambientDust.position.y = Math.sin(elapsed * 0.22) * 0.035;
+        ambientDust.rotation.z = Math.sin(elapsed * 0.12) * 0.0025;
+      }
+
+      let keepRendering = false;
+      if (supportsParallax) {
+        const pointerBlend = 1 - Math.exp(-5.8 * delta);
+        pointerCurrent.lerp(pointerTarget, pointerBlend);
+        keepRendering = pointerCurrent.distanceToSquared(pointerTarget) > 0.000002;
+      }
+      coolRim.position.x = 5.5 + pointerCurrent.x * 0.65;
+
+      if (renderer.shadowMap.enabled && !shadowMapFrozen && elapsed > 1.8) {
+        renderer.shadowMap.autoUpdate = false;
+        renderer.shadowMap.needsUpdate = true;
+        shadowMapFrozen = true;
+      }
+
+      if (!motionActive && !renderRequested && !keepRendering) return;
+      const minimumRenderInterval = motionActive && lowPowerDevice ? 1 / 30 : 0;
+      if (now - lastRenderedTime < minimumRenderInterval) return;
+      lastRenderedTime = now;
+      stats.frame++;
+      renderer.render(scene, camera);
+      renderRequested = keepRendering;
+      if (!window.__galtonBoard260720V1Ready) {
+        window.__galtonBoard260720V1Ready = true;
+        window.clearTimeout(window.__galtonBoard260720V1LoadTimeout);
+        resetButton.disabled = false;
+        resetButton.setAttribute("aria-label", "Start a new random run");
+        const speed = speedOptions[speedIndex];
+        speedButton.setAttribute("aria-label", `Simulation speed, ${speed} times`);
+        updateTelemetry(true);
+      }
+    }
+    animate();
+  </script>
+  <script>
+    function showGaltonLoadFailure(message) {
+      if (window.__galtonBoard260720V1Ready) return;
+      const state = document.getElementById("run-state");
+      const telemetry = document.getElementById("telemetry");
+      const liveStatus = document.getElementById("live-status");
+      const count = document.getElementById("sample-count");
+      state.textContent = "WebGL unavailable";
+      count.textContent = "— / 1000";
+      telemetry.setAttribute("aria-label", message);
+      liveStatus.textContent = message;
+      for (const [id, label] of [
+        ["pause", "Renderer unavailable"],
+        ["speed", "Renderer unavailable"],
+        ["reset", "Renderer unavailable"]
+      ]) {
+        const button = document.getElementById(id);
+        button.disabled = true;
+        button.setAttribute("aria-label", label);
+      }
+    }
+    window.addEventListener("error", () => {
+      showGaltonLoadFailure("The graphics module could not be initialized. Check WebGL support.");
+    });
+    window.addEventListener("unhandledrejection", () => {
+      showGaltonLoadFailure("The graphics module could not be initialized. Check the network connection.");
+    });
+    window.__galtonBoard260720V1LoadTimeout = window.setTimeout(() => {
+      showGaltonLoadFailure("The graphics module could not be loaded. Check the network connection and WebGL support.");
+    }, 8000);
+  </script>
+</body>
+</html>

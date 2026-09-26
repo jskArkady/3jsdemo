@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>태양계 기계식 천문대 · Clockwork Orrery</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;color:#e8ddc6;background:#090e14}*{box-sizing:border-box}body{margin:0;overflow:hidden}#stage{position:fixed;inset:0}canvas{display:block}header{position:absolute;top:32px;left:38px;pointer-events:none;max-width:390px}.eyebrow{font-size:10px;letter-spacing:.3em;color:#b59b65}h1{font-size:clamp(24px,3vw,40px);font-weight:400;letter-spacing:-.05em;margin:12px 0}header p{font-size:12px;line-height:1.9;color:#a6abae;margin:0;max-width:330px}a{color:#ddc08a;text-decoration:none}header a{pointer-events:auto;display:inline-block;margin-bottom:26px;font-size:12px}#telemetry{position:absolute;right:32px;top:34px;text-align:right;font:10px/1.9 ui-monospace,monospace;letter-spacing:.1em;color:#a8b2b7}.badge{color:#dabd80}#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}.planet-label{position:absolute;font-size:10px;letter-spacing:.12em;color:#c4c9c9;white-space:nowrap;transform:translate(-50%,-100%);text-shadow:0 2px 5px #000}.planet-label:before{content:'';display:block;width:1px;height:11px;background:#ac9e7755;margin:0 auto 5px}footer{position:absolute;left:32px;right:32px;bottom:24px;display:flex;gap:22px;align-items:flex-end;justify-content:space-between}.controls{padding:16px 18px;background:#111922e8;border:1px solid #b69d6038;border-radius:4px;backdrop-filter:blur(14px);max-width:740px}.control-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button,select{font:inherit;font-size:12px;background:#1a242c;border:1px solid #61707c66;border-radius:3px;color:#e8ddc6;padding:9px 12px;min-height:36px;cursor:pointer}button:hover,select:hover{border-color:#d8b66e}button[aria-pressed=true]{background:#b99b5b;color:#0a131c;border-color:#d9bc82}button:disabled{opacity:.45;cursor:default}:focus-visible{outline:2px solid #f4d68e;outline-offset:4px}label{font-size:11px;color:#a9b2b7}#status{font-size:11px;line-height:1.6;color:#b2b8b9;margin:10px 0 0;min-height:18px}.caption{text-align:right;font-size:10px;line-height:1.9;letter-spacing:.08em;color:#89969e;margin:0 0 4px}.caption strong{font-weight:400;color:#c9b383}#error{position:absolute;inset:30% 12%;padding:25px;background:#17202b;border:1px solid #b99b5b;z-index:5;height:fit-content;line-height:1.8}#error[hidden]{display:none}@media(max-width:650px){header{top:18px;left:20px;max-width:280px}header a{margin-bottom:12px}header p{font-size:11px;max-width:250px}h1{font-size:25px;margin:7px 0}#telemetry{top:20px;right:15px;font-size:9px}footer{left:12px;right:12px;bottom:12px}.controls{padding:12px;width:100%}.control-row{gap:6px}button,select{padding:8px;font-size:11px}.caption{display:none}.eyebrow{font-size:9px;letter-spacing:.18em}.planet-label{font-size:9px}}@media(max-height:500px){header{top:12px;left:18px}header a{margin:0}header p,.eyebrow,.caption{display:none}h1{font-size:21px;margin:8px 0}footer{bottom:10px}.controls{padding:9px}#status{margin-top:5px}#telemetry{top:12px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.183.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.183.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="stage" role="img" aria-label="황동 기어 위에서 여섯 행성과 달이 움직이는 태양계 모형"></div>
+<header><a href="../index.html">← 데모 갤러리</a><div class="eyebrow">CELESTIAL MECHANICS / EXHIBIT 04</div><h1>태양계 기계식 천문대</h1><p>황동의 톱니가 시간을 전달하고,<br>여섯 개의 작은 세계가 별 주위를 돕니다.</p></header>
+<div id="telemetry"><span class="badge">CLOCKWORK ORRERY</span><br><span id="fps">FPS · 준비 중</span><br>EST. 1720 / REIMAGINED</div>
+<div id="labels" aria-hidden="true"></div>
+<footer><div class="controls"><div class="control-row">
+<button id="pause" type="button" aria-pressed="false">일시정지</button>
+<label for="speed">배속</label><select id="speed"><option value="0.25">0.25×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+<button id="auto" type="button" aria-pressed="true">자동 카메라</button>
+<button id="wide" type="button" aria-pressed="true">전체 보기</button><button id="gears" type="button" aria-pressed="false">기어 보기</button>
+<button id="eclipse" type="button" aria-pressed="false">일식 시연</button>
+</div><p id="status" role="status" aria-live="polite">공전 중 · 크기·거리·주기를 축약한 원리 모형입니다.</p></div><p class="caption"><strong>BRASS, MOTION & LIGHT</strong><br>축약된 태양계 / 단순 기어 전달 모형<br>실제 천체력·정밀 기계 해석이 아닙니다.</p></footer>
+<div id="error" role="alert" hidden></div>
+<script type="module">
+const errorBox=document.querySelector('#error');
+try {
+const THREE=await import('three');
+const {RoomEnvironment}=await import('three/addons/environments/RoomEnvironment.js');
+const {EffectComposer}=await import('three/addons/postprocessing/EffectComposer.js');
+const {RenderPass}=await import('three/addons/postprocessing/RenderPass.js');
+const {UnrealBloomPass}=await import('three/addons/postprocessing/UnrealBloomPass.js');
+const {OutputPass}=await import('three/addons/postprocessing/OutputPass.js');
+const $=id=>document.getElementById(id), TAU=Math.PI*2;
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+$('stage').appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x090e14);scene.fog=new THREE.FogExp2(0x090e14,.022);
+const camera=new THREE.PerspectiveCamera(43,innerWidth/innerHeight,.1,120);
+const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
+const environment=pmrem.fromScene(room,.04);scene.environment=environment.texture;scene.environmentIntensity=.75;room.dispose();pmrem.dispose();
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.25,.5,1.2);composer.addPass(bloom);composer.addPass(new OutputPass());
+scene.add(new THREE.HemisphereLight(0xb6d8ec,0x211607,1.3));
+function light(color,power,x,y,z){const l=new THREE.PointLight(color,power,65,2);l.position.set(x,y,z);scene.add(l);return l;}
+light(0xffdba0,260,1,11,4);light(0x84b9dc,200,-9,7,-7);light(0xffba67,85,7,3,8);light(0xffd193,50,0,4.4,0);
+const brass=new THREE.MeshStandardMaterial({color:0xbd9047,metalness:.83,roughness:.3});
+const bright=new THREE.MeshStandardMaterial({color:0xe4c68b,metalness:.78,roughness:.25});
+const dark=new THREE.MeshStandardMaterial({color:0x1c2930,metalness:.72,roughness:.36});
+const wood=new THREE.MeshStandardMaterial({color:0x35221b,metalness:.12,roughness:.52});
+const orbitMat=new THREE.MeshStandardMaterial({color:0x937850,metalness:.65,roughness:.4});
+const dim=new THREE.MeshStandardMaterial({color:0x18212a,roughness:.84});
+const geometries=new Set(),materials=new Set([brass,bright,dark,wood,orbitMat,dim]),textures=new Set();
+const sphere=new THREE.SphereGeometry(1,40,24),cylinder=new THREE.CylinderGeometry(1,1,1,64),box=new THREE.BoxGeometry(1,1,1);[sphere,cylinder,box].forEach(g=>geometries.add(g));
+function mesh(g,m,parent=scene){geometries.add(g);materials.add(m);const o=new THREE.Mesh(g,m);parent.add(o);return o;}
+function cyl(r,h,y,m=brass,parent=scene,x=0,z=0){const o=mesh(cylinder,m,parent);o.scale.set(r,h,r);o.position.set(x,y,z);return o;}
+function ring(r,t,y,m=brass,parent=scene){const o=mesh(new THREE.TorusGeometry(r,t,8,160),m,parent);o.rotation.x=Math.PI/2;o.position.y=y;return o;}
+function bar(a,b,r,m=brass,parent=scene){const o=mesh(cylinder,m,parent),d=new THREE.Vector3().subVectors(b,a);o.scale.set(r,d.length(),r);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return o;}
+const v=(x,y,z)=>new THREE.Vector3(x,y,z);
+// A recessed, open-sided plinth keeps the transmission visible from a low angle.
+cyl(10.5,.22,-.13,dark);cyl(9.9,.48,.15,wood);cyl(10,.12,.43,brass);cyl(9.4,.13,.55,dark);
+ring(9.8,.045,.52,bright);ring(9.5,.045,.57,bright);ring(9.2,.04,2.05);ring(9.2,.07,1.88);
+cyl(.5,3.7,2.15,dark);cyl(.57,.2,2.7,bright);cyl(.25,1.7,3.65,brass);
+for(let i=0;i<12;i++){const a=i*TAU/12,x=Math.cos(a)*9.1,z=Math.sin(a)*9.1;cyl(.085,1.35,1.2,brass,scene,x,z);cyl(.16,.13,.65,bright,scene,x,z);cyl(.15,.13,1.85,bright,scene,x,z);}
+const ticks=new THREE.InstancedMesh(box,bright,180),dummy=new THREE.Object3D();
+for(let i=0;i<180;i++){const a=i*TAU/180;dummy.position.set(Math.cos(a)*9.68,.585,Math.sin(a)*9.68);dummy.rotation.set(0,-a,0);dummy.scale.set(i%15===0?.26:.12,.013,.024);dummy.updateMatrix();ticks.setMatrixAt(i,dummy.matrix);}scene.add(ticks);
+// Pitch radii 1.2 and .8 share a .2 tooth pitch. Equal phase shafts share one group.
+function gear(teeth,r,x,z){const g=new THREE.Group();scene.add(g);g.position.set(x,1.1,z);cyl(r-.09,.16,0,brass,g);cyl(r*.72,.19,0,dark,g);ring(r*.78,.025,.1,bright,g);cyl(.2,.28,0,bright,g);cyl(.095,1.05,-.05,brass,g);
+const teethMesh=new THREE.InstancedMesh(box,brass,teeth);for(let i=0;i<teeth;i++){let a=i*TAU/teeth;dummy.position.set(r*Math.cos(a),0,r*Math.sin(a));dummy.rotation.set(0,-a,0);dummy.scale.set(.2,.18,.13);dummy.updateMatrix();teethMesh.setMatrixAt(i,dummy.matrix);}g.add(teethMesh);
+for(let i=0;i<6;i++){let a=i*TAU/6;bar(v(.18*Math.cos(a),.12,.18*Math.sin(a)),v(r*.7*Math.cos(a),.12,r*.7*Math.sin(a)),.025,bright,g);}return g;}
+const gears=[gear(36,1.2,0,3.2),gear(24,.8,2,3.2),gear(36,1.2,4,3.2)];
+for(const g of gears){cyl(.2,.15,.68,dark,scene,g.position.x,g.position.z);cyl(.2,.15,1.65,brass,scene,g.position.x,g.position.z);}
+bar(v(0,1.75,0),v(0,1.75,3.2),.09,dark);cyl(.24,.16,1.78,bright,scene,0,3.2);cyl(.24,.16,1.78,bright);
+// A horizontal drive rod and bearing brackets explain the exposed crank assembly.
+bar(v(4,1.1,3.2),v(4,1.1,6.2),.08,dark);for(const z of [4.8,6])cyl(.11,.6,.87,brass,scene,4,z);
+const crank=new THREE.Group();crank.position.set(4,1.1,6.2);scene.add(crank);bar(v(0,0,0),v(.55,0,0),.055,bright,crank);bar(v(.55,0,0),v(.55,0,.5),.08,wood,crank);
+// Procedural colour maps: no external images, deterministic latitude bands and continents.
+function planetMap(kind,color){const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d'),im=ctx.createImageData(512,256),base=new THREE.Color(color);
+for(let y=0;y<256;y++)for(let x=0;x<512;x++){const lon=x/512*TAU,lat=(y/256-.5)*Math.PI;const noise=Math.sin(lon*7+Math.sin(lat*11))*Math.cos(lat*9+Math.cos(lon*4));let r=base.r,g=base.g,b=base.b;let shade=.8+.15*Math.sin(lat*46)+.1*noise;
+if(kind==='earth'){const land=noise+.45*Math.sin(lon*3+lat*5)>.32;const polar=Math.abs(lat)>1.2+.08*Math.sin(lon*8);[r,g,b]=polar?[.8,.87,.87]:land?[.17,.35,.22]:[.025,.19,.37];shade=.88+.13*Math.sin(lon*25+lat*31)*Math.cos(lat*24);}
+if(kind==='jupiter'||kind==='saturn')shade=.7+.18*Math.sin(lat*36+noise*.5)+.1*Math.sin(lat*71);
+const n=(y*512+x)*4;im.data[n]=Math.min(255,r*shade*255);im.data[n+1]=Math.min(255,g*shade*255);im.data[n+2]=Math.min(255,b*shade*255);im.data[n+3]=255;}
+ctx.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;textures.add(t);return t;}
+const sun=mesh(sphere,new THREE.MeshStandardMaterial({color:0xffce75,emissive:0xffb33a,emissiveIntensity:2.3,roughness:.65}));sun.scale.setScalar(.75);sun.position.y=4.4;
+const sunMeridian=ring(.91,.018,4.4,bright);sunMeridian.rotation.set(Math.PI/2.7,0,.3);
+const planets=[], specs=[['수성','mercury',2,.17,0xada29a,.65,.2],['금성','venus',3,.28,0xe3be82,.46,2.4],['지구','earth',4.35,.42,0x398aad,.29,.7],['화성','mars',5.65,.25,0xc46942,.22,3.5],['목성','jupiter',7.05,.68,0xd7b58c,.12,4.8],['토성','saturn',8.65,.54,0xdbbe89,.085,2.5]];
+for(const [name,kind,r,size,color,rate,phase] of specs){const pivot=new THREE.Group();scene.add(pivot);const height=2.1+planets.length*.23;ring(r,.014,height,orbitMat);cyl(.31+planets.length*.035,.09,height,bright);
+bar(v(0,height,0),v(r,height,0),.035,brass,pivot);bar(v(r,height,0),v(r,4.4-size,0),.034,bright,pivot);cyl(.09,.12,4.4-size-.05,brass,pivot,r,0);
+const tilt=new THREE.Group();tilt.position.set(r,4.4,0);tilt.rotation.z=kind==='earth'?.409:kind==='saturn'?.47:.1;pivot.add(tilt);
+const material=new THREE.MeshStandardMaterial({map:planetMap(kind,color),roughness:.7,metalness:.05});const globe=mesh(sphere,material,tilt);globe.scale.setScalar(size);
+if(kind==='saturn'){const rg=mesh(new THREE.RingGeometry(.72,1.08,96),new THREE.MeshStandardMaterial({color:0xc6ab76,metalness:.4,roughness:.6,side:THREE.DoubleSide}),tilt);rg.rotation.x=-Math.PI/2;for(const rr of [.78,.87,1.02])ring(rr,.008,0,dark,tilt);}
+const label=document.createElement('span');label.className='planet-label';label.textContent=name;$('labels').append(label);planets.push({pivot,globe,tilt,label,r,size,rate,phase});}
+const earth=planets[2],moonPivot=new THREE.Group();moonPivot.position.set(earth.r,4.4,0);earth.pivot.add(moonPivot);
+const moon=mesh(sphere,new THREE.MeshStandardMaterial({map:planetMap('moon',0xc2bfaf),roughness:1}),moonPivot);moon.scale.setScalar(.25);moon.position.x=.85;
+ring(.85,.007,0,orbitMat,moonPivot);bar(v(0,-.5,0),v(.85,-.5,0),.018,brass,moonPivot);bar(v(.85,-.5,0),v(.85,-.25,0),.018,brass,moonPivot);
+// Finite solar disk occlusion in world space. The shadow follows the real moon position,
+// with cone radii derived from sun/moon radii and distance, not a screen-space overlay.
+const eclipseUniforms={moonWorld:{value:new THREE.Vector3()},sunWorld:{value:sun.position.clone()}};
+earth.globe.material.onBeforeCompile=shader=>{Object.assign(shader.uniforms,eclipseUniforms);
+shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 eclipseWorld;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\neclipseWorld=(modelMatrix*vec4(transformed,1.0)).xyz;');
+shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 eclipseWorld; uniform vec3 moonWorld; uniform vec3 sunWorld;').replace('#include <opaque_fragment>',`vec3 axis=normalize(moonWorld-sunWorld); float sourceDistance=length(moonWorld-sunWorld); float behind=dot(eclipseWorld-moonWorld,axis); float radial=length((eclipseWorld-moonWorld)-axis*behind); float umbra=max(0.0,0.25-behind*(0.75-0.25)/sourceDistance); float penumbra=0.25+behind*(0.75+0.25)/sourceDistance; float eclipseMask=(1.0-smoothstep(umbra,penumbra,radial))*step(0.0,behind); outgoingLight*=1.0-0.94*eclipseMask;\n#include <opaque_fragment>`);};
+// Circular museum enclosure, ribs, floor inlays and a hanging meridian instrument.
+cyl(75,.12,-.34,dim);for(const r of [12,16,22])ring(r,.025,-.27,orbitMat);
+const wall=mesh(new THREE.CylinderGeometry(70,70,17,96,1,true),new THREE.MeshStandardMaterial({color:0x17232b,roughness:.9,side:THREE.BackSide}));wall.position.y=8;
+for(let i=0;i<24;i++){const a=i*TAU/24;bar(v(Math.cos(a)*69,0,Math.sin(a)*69),v(Math.cos(a)*69,15,Math.sin(a)*69),.1,dark);}
+const arch=ring(10.5,.055,4.4,brass);arch.rotation.x=0;arch.rotation.y=.18;
+const innerArch=ring(10.3,.016,4.4,orbitMat);innerArch.rotation.copy(arch.rotation);
+let simTime=0,paused=false,speed=1,auto=!matchMedia('(prefers-reduced-motion: reduce)').matches,view='wide',demo=false,blend=0,demoTime=0,cameraTime=0;
+let last=0,animationId=0,disposed=false,fpsTime=0,fpsFrames=0;
+const target=new THREE.Vector3(0,2,0),desiredCamera=new THREE.Vector3(),desiredTarget=new THREE.Vector3(),point=new THREE.Vector3();
+const controller=new AbortController(),listen=(el,name,fn)=>el.addEventListener(name,fn,{signal:controller.signal});
+function syncUI(){ $('pause').textContent=paused?'재생':'일시정지';$('pause').setAttribute('aria-pressed',String(paused));$('auto').setAttribute('aria-pressed',String(auto));$('wide').setAttribute('aria-pressed',String(view==='wide'));$('gears').setAttribute('aria-pressed',String(view==='gears'));$('eclipse').setAttribute('aria-pressed',String(demo));$('eclipse').textContent=demo?'시연 복귀':'일식 시연';for(const id of ['auto','wide','gears'])$(id).disabled=demo||blend>0;
+$('status').textContent=(paused?'일시정지 · ':demo?'일식 시연 · ':'공전 중 · ')+(demo?'태양–달–지구 정렬과 지구 표면의 그림자 · 축약된 원리 시연':blend>0?'원래 궤도와 카메라로 복귀 중':'크기·거리·주기를 축약한 원리 모형입니다.');}
+listen($('pause'),'click',()=>{paused=!paused;syncUI();});listen($('speed'),'change',e=>{speed=Number(e.target.value);});listen($('auto'),'click',()=>{auto=!auto;syncUI();});
+for(const mode of ['wide','gears'])listen($(mode),'click',()=>{view=mode;syncUI();});
+listen($('eclipse'),'click',()=>{demo=!demo;if(demo&&blend===0)demoTime=0;syncUI();});
+function pose(){const eased=blend*blend*(3-2*blend);planets.forEach((p,i)=>{const normal=simTime*p.rate+p.phase;const nearest=normal-Math.round(normal/TAU)*TAU;p.pivot.rotation.y=i===2?THREE.MathUtils.lerp(nearest,0,eased):normal;p.globe.rotation.y=simTime*(.3+i*.04)+demoTime*.1*eased;});
+const normalMoon=simTime*1.3;const near=normalMoon-Math.round((normalMoon-Math.PI)/TAU)*TAU;moonPivot.rotation.y=THREE.MathUtils.lerp(near,Math.PI-.42*(1-Math.min(demoTime/7,1)),eased);
+const driveTime=simTime+demoTime*eased;gears[0].rotation.y=driveTime*.8;gears[1].rotation.y=-driveTime*1.2+Math.PI/24;gears[2].rotation.y=driveTime*.8;crank.rotation.z=-driveTime*1.2;
+scene.updateMatrixWorld(true);moon.getWorldPosition(eclipseUniforms.moonWorld.value);
+const portrait=innerWidth/innerHeight<.85,scale=portrait?Math.max(2.1,.97/(innerWidth/innerHeight)):1;
+const a=.73+cameraTime*.065;if(view==='wide'){desiredCamera.set(Math.sin(a)*24*scale,16*scale,Math.cos(a)*24*scale);desiredTarget.set(0,2.4,0);}else{desiredCamera.set(10,5.5,15);desiredTarget.set(1.8,1.45,2.5);}
+// View from the sunward side of Earth so the daytime eclipse patch is visible.
+desiredCamera.lerp(v(1.8,6.6,portrait?5.8:3.4),eased);desiredTarget.lerp(v(3.8,4.4,0),eased);
+}
+function updateLabels(){for(const p of planets){point.setFromMatrixPosition(p.globe.matrixWorld);point.y+=p.size+.15;point.project(camera);p.label.style.left=`${(point.x*.5+.5)*innerWidth}px`;p.label.style.top=`${(-point.y*.5+.5)*innerHeight}px`;p.label.hidden=view==='gears'||blend>.15||point.z>1||point.z< -1;}}
+function animate(now){if(disposed)return;animationId=requestAnimationFrame(animate);const elapsed=last?Math.max(0,(now-last)/1000):0;const dt=Math.min(elapsed,.05);last=now;if(document.hidden)return;
+const step=paused?0:dt*speed;const oldBlend=blend;blend=THREE.MathUtils.clamp(blend+(demo?1:-1)*step/2,0,1);if(blend<1e-8)blend=0;else if(blend>1-1e-8)blend=1;
+if(demo&&blend===1)demoTime+=step;else if(!demo&&blend===0){if(oldBlend>0){demoTime=0;syncUI();}else simTime+=step;}
+if(auto&&!demo&&blend===0)cameraTime+=dt;pose();camera.position.lerp(desiredCamera,1-Math.exp(-dt*4));target.lerp(desiredTarget,1-Math.exp(-dt*4));camera.lookAt(target);camera.updateMatrixWorld();updateLabels();composer.render();fpsTime+=elapsed;fpsFrames++;if(fpsTime>=1){$('fps').textContent=`FPS · ${Math.round(fpsFrames/fpsTime)}`;fpsTime=0;fpsFrames=0;}}
+function resize(){renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer.setSize(innerWidth,innerHeight);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();pose();camera.position.copy(desiredCamera);target.copy(desiredTarget);}
+listen(window,'resize',resize);listen(document,'visibilitychange',()=>{last=0;fpsTime=0;fpsFrames=0;});
+const motion=matchMedia('(prefers-reduced-motion: reduce)');listen(motion,'change',()=>{if(motion.matches){auto=false;syncUI();}});
+listen(renderer.domElement,'webglcontextlost',event=>{event.preventDefault();errorBox.hidden=false;errorBox.textContent='그래픽 컨텍스트가 중단되었습니다. 페이지를 새로고침해 천문대를 다시 열어 주세요.';dispose();});
+function dispose(){if(disposed)return;disposed=true;cancelAnimationFrame(animationId);controller.abort();scene.traverse(o=>{if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());environment.dispose();composer.passes.forEach(p=>p.dispose?.());composer.dispose();renderer.dispose();}
+// BFCache keeps the page and its GPU resources alive; only reset the time origin on return.
+listen(window,'pagehide',event=>{if(event.persisted){cancelAnimationFrame(animationId);last=0;}else dispose();});listen(window,'pageshow',event=>{if(event.persisted&&!disposed){last=0;animationId=requestAnimationFrame(animate);}});
+syncUI();pose();camera.position.copy(desiredCamera);target.copy(desiredTarget);camera.lookAt(target);animationId=requestAnimationFrame(animate);
+} catch(error){console.error(error);errorBox.hidden=false;errorBox.textContent='천문대를 시작하지 못했습니다. WebGL 지원과 인터넷 연결(Three.js CDN)을 확인한 뒤 새로고침해 주세요.';}
+</script>
+</body>
+</html>

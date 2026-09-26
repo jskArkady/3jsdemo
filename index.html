@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Three.js 공간·확률·수학·과학·공학 데모 16종 실행 메뉴">
+  <title>Three.js Demo Gallery</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #10141b; color: #ecf0f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top right, #20333a 0, transparent 55%); }
+    main { max-width: 2400px; margin: auto; padding: 64px clamp(24px, 3vw, 80px) 40px; }
+    .eyebrow { color: #92d8c2; font-size: 12px; font-weight: 650; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 16px 0; font-size: clamp(36px, 6vw, 64px); letter-spacing: -.05em; line-height: 1.1; }
+    .intro { max-width: 650px; color: #b5bfce; line-height: 1.8; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 44px; border-bottom: 1px solid #34404c; }
+    h2 { font-size: 18px; font-weight: 600; }
+    .count { font-size: 13px; color: #a5b2c4; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: clamp(18px, 1.25vw, 28px); list-style: none; padding: 0; margin: 22px 0 0; }
+    .card { height: 100%; display: flex; flex-direction: column; padding: 26px; border: 1px solid #34404c; border-radius: 16px; background: #19212b; }
+    .meta { color: #92d8c2; font-size: 12px; letter-spacing: .05em; }
+    h3 { font-size: 23px; line-height: 1.3; letter-spacing: -.025em; margin: 16px 0 12px; }
+    .description { color: #c1cbd8; line-height: 1.75; font-size: 14px; margin: 0 0 18px; }
+    .details { color: #a5b2c4; font-size: 12px; line-height: 1.7; margin: auto 0 22px; }
+    .launch { display: flex; justify-content: space-between; gap: 12px; padding: 13px 16px; border: 1px solid #496758; border-radius: 8px; background: #233d34; color: #d9fbed; text-decoration: none; font-size: 14px; font-weight: 650; }
+    .launch:hover { background: #315343; border-color: #92d8c2; }
+    .launch:focus-visible { outline: 3px solid #b6f3df; outline-offset: 5px; }
+    footer { margin-top: 36px; color: #a5b2c4; font-size: 13px; line-height: 1.8; border-top: 1px solid #34404c; padding-top: 20px; }
+    @media (max-width: 600px) { main { padding: 36px 18px 24px; } .card { padding: 22px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Three.js · Demo collection</div>
+      <h1>작은 화면, 새로운 세계.</h1>
+      <p class="intro">절벽 위 성소와 심해 관측소, 황동 천문대부터 확률 분포, 파동과 구조·제어 실험까지.<br>데모를 선택하면 해당 장면이 열립니다. 브라우저의 뒤로 가기로 메뉴에 돌아올 수 있습니다.</p>
+    </header>
+
+    <section aria-labelledby="scenes-title">
+      <div class="section-heading"><h2 id="scenes-title">공간과 분위기</h2><span class="count">04 demos</span></div>
+      <ul class="grid">
+        <li><article class="card">
+          <div class="meta">2026.06.21 · V1</div>
+          <h3>Ancient Cliff Sanctuary</h3>
+          <p class="description">거대한 협곡과 아치형 다리, 절벽에 새겨진 성소. 거대 생명체와 바람에 흔들리는 식생을 시네마틱 카메라로 탐색합니다.</p>
+          <p class="details">일시정지 · 배속 · 자동 카메라 · 노출 · FPS<br>폴더: ancient-cliff-sanctuary</p>
+          <a class="launch" href="./ancient-cliff-sanctuary/ancient-cliff-sanctuary.html" aria-label="Ancient Cliff Sanctuary 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">2026.06.21 · V2</div>
+          <h3>Ruined Portal Test Chamber</h3>
+          <p class="description">식물과 잔해가 남은 폐허 속 실험실. 서로 연결된 두 포털, 움직이는 기계 장치와 빛줄기를 구현한 공간 데모입니다.</p>
+          <p class="details">일시정지 · 배속 · 자동 카메라 · 노출 · FPS<br>폴더: ruined-portal-test-chamber</p>
+          <a class="launch" href="./ruined-portal-test-chamber/ruined-portal-test-chamber.html" aria-label="Ruined Portal Test Chamber 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">2026.09.22 · OCEAN</div>
+          <h3>심해 생물발광 관측소</h3>
+          <p class="description">두꺼운 관측창 너머 발광 해파리와 물고기 군집이 유영합니다. 차가운 심해와 따뜻한 계기등 사이에서 해류와 탐조등을 조절합니다.</p>
+          <p class="details">탐조등 · 해류 강도 · 일시정지 · 자동 카메라 · FPS<br>폴더: abyssal-observatory</p>
+          <a class="launch" href="./abyssal-observatory/abyssal-observatory.html" aria-label="심해 생물발광 관측소 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">2026.09.22 · CELESTIAL</div>
+          <h3>태양계 기계식 천문대</h3>
+          <p class="description">황동 기어와 구동축 위에서 여섯 행성과 달이 움직입니다. 기계 하부를 관찰하고, 태양·달·지구의 정렬로 일식 원리를 살펴봅니다.</p>
+          <p class="details">일시정지 · 배속 · 자동 카메라 · 전체/기어 보기 · 일식 시연<br>폴더: clockwork-orrery</p>
+          <a class="launch" href="./clockwork-orrery/clockwork-orrery.html" aria-label="태양계 기계식 천문대 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="chance-title">
+      <div class="section-heading"><h2 id="chance-title">The Shape of Chance</h2><span class="count">03 versions</span></div>
+      <ul class="grid">
+        <li><article class="card">
+          <div class="meta">2026.07.03 · V1</div>
+          <h3>640개의 경로</h3>
+          <p class="description">640개의 구슬이 14단 핀을 지나며 분포를 만드는 갈턴 보드. 황동 포인트를 사용한 초기 확률 시뮬레이션입니다.</p>
+          <p class="details">시뮬레이션 재시작<br>폴더: galton-board-640-14-rows</p>
+          <a class="launch" href="./galton-board-640-14-rows/galton-board-640-14-rows.html" aria-label="The Shape of Chance 260703 V1 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">2026.07.20 · V1</div>
+          <h3>1,000번의 실험 · 23단</h3>
+          <p class="description">2초 동안 방출되는 1,000개의 구슬. 23단 핀을 통과한 관측 결과와 이론적인 이항분포를 비교합니다.</p>
+          <p class="details">일시정지 · 배속 · 새 실험 · 진행 통계<br>폴더: galton-board-1000-23-rows</p>
+          <a class="launch" href="./galton-board-1000-23-rows/galton-board-1000-23-rows.html" aria-label="The Shape of Chance 260720 V1 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">2026.08.31 · V2</div>
+          <h3>1,000번의 실험 · 12단</h3>
+          <p class="description">12단 핀과 13개 결과 구간으로 구성한 갈턴 보드. 유리 호퍼와 원형 진행 표시, 평균값을 보여주는 개편된 화면입니다.</p>
+          <p class="details">일시정지 · 배속 · 새 실험 · 진행 통계<br>폴더: galton-board-1000-12-rows</p>
+          <a class="launch" href="./galton-board-1000-12-rows/galton-board-1000-12-rows.html" aria-label="The Shape of Chance 260831 V2 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+      </ul>
+    </section>
+    <section aria-labelledby="stem-title">
+      <div class="section-heading"><h2 id="stem-title">수학·과학·공학</h2><span class="count">09 demos</span></div>
+      <ul class="grid">
+        <li><article class="card">
+          <div class="meta">STEM / 01</div>
+          <h3>구조물 공진 실험실</h3>
+          <p class="description">같은 지반 가진을 받는 두 4층 건물의 공진·감쇠와 고유모드를 비교합니다.</p>
+          <p class="details">자유/강제/모드 · 질량·강성·감쇠 · 변위 그래프 · 단계 진행<br>폴더: structural-resonance</p>
+          <a class="launch" href="./structural-resonance/structural-resonance.html" aria-label="구조물 공진 실험실 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 02</div>
+          <h3>파동 간섭 수조</h3>
+          <p class="description">두 파원의 보강·상쇄를 입체 수면, 평균 강도 지도와 탐침 파형으로 비교합니다.</p>
+          <p class="details">위상·주파수·간격 · 파원 토글 · 탐침 · 상부/입체 보기<br>폴더: wave-interference</p>
+          <a class="launch" href="./wave-interference/wave-interference.html" aria-label="파동 간섭 수조 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 03</div>
+          <h3>푸리에 합성 조각</h3>
+          <p class="description">회전 벡터로 폐곡선을 복원하며 주파수 성분과 복원 오차를 비교합니다.</p>
+          <p class="details">직접 그리기 · 1~128개 성분 · 스펙트럼 · 평면/시간축 보기<br>폴더: fourier-synthesis</p>
+          <a class="launch" href="./fourier-synthesis/fourier-synthesis.html" aria-label="푸리에 합성 조각 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 04</div>
+          <h3>선형변환 공간 실험실</h3>
+          <p class="description">3×3 행렬로 기저·격자·단위구를 변형하며 행렬식, 차원과 특이값을 탐구합니다.</p>
+          <p class="details">행렬 편집 · 보간 · 7개 프리셋 · 기저·고유축·주축<br>폴더: linear-transform</p>
+          <a class="launch" href="./linear-transform/linear-transform.html" aria-label="선형변환 공간 실험실 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 05</div>
+          <h3>로렌츠 혼돈 관측소</h3>
+          <p class="description">아주 가까운 두 초기값이 만드는 로렌츠 궤적과 거리 그래프로 결정론적 혼돈을 관측합니다.</p>
+          <p class="details">σ·ρ·β·ε · 궤적 길이 · 선형/로그 거리 · 시점 전환<br>폴더: lorenz-attractor</p>
+          <a class="launch" href="./lorenz-attractor/lorenz-attractor.html" aria-label="로렌츠 혼돈 관측소 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 06</div>
+          <h3>전자기 유도 발전기</h3>
+          <p class="description">회전 코일의 자세와 자기선속, 유도전압·전류를 3D 모형과 시간 그래프로 연결합니다.</p>
+          <p class="details">rpm·B·N·A·R · 자극 반전 · 법선·투영 · 그래프 축 고정<br>폴더: electromagnetic-induction</p>
+          <a class="launch" href="./electromagnetic-induction/electromagnetic-induction.html" aria-label="전자기 유도 발전기 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 07</div>
+          <h3>PID 서보 실험대</h3>
+          <p class="description">레일 위 카트의 목표 추종으로 P·PI·PID, 힘 포화와 anti-windup, 외란 응답을 비교합니다.</p>
+          <p class="details">게인·목표 · step/sine · 힘 제한 · anti-windup · 외란<br>폴더: pid-servo</p>
+          <a class="launch" href="./pid-servo/pid-servo.html" aria-label="PID 서보 실험대 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 08</div>
+          <h3>열전도 단면 실험실</h3>
+          <p class="description">직육면체 내부의 열확산을 X/Y/Z 단면과 탐침으로 관찰하고 경계조건과 체적 가열을 비교합니다.</p>
+          <p class="details">재료·경계온도 · 단면 이동 · 탐침 · 열원 · 배속<br>폴더: heat-diffusion</p>
+          <a class="launch" href="./heat-diffusion/heat-diffusion.html" aria-label="열전도 단면 실험실 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+        <li><article class="card">
+          <div class="meta">STEM / 09</div>
+          <h3>트러스 하중 실험실</h3>
+          <p class="description">이동 하중에 따른 부재의 인장·압축, 절점 변위와 지점 반력을 정적 해석으로 살펴봅니다.</p>
+          <p class="details">구조 프리셋 · 하중 이동 · E·A · 부재 선택 · 변형 배율<br>폴더: truss-lab</p>
+          <a class="launch" href="./truss-lab/truss-lab.html" aria-label="트러스 하중 실험실 실행">데모 실행 <span aria-hidden="true">↗</span></a>
+        </article></li>
+      </ul>
+    </section>
+    <footer>총 16개 데모 · 실행하려면 인터넷 연결과 JavaScript, WebGL을 지원하는 브라우저가 필요합니다.<br>각 데모는 장면 이름이 붙은 폴더와 HTML 파일로 관리합니다.</footer>
+  </main>
+</body>
+</html>

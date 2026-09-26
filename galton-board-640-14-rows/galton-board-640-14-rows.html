@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>260703 V1 — The Shape of Chance</title>
+  <link rel="icon" href="data:,">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #07100f;
+      user-select: none;
+    }
+    body {
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 44%, #10231f 0%, #050b0a 54%, #020504 100%);
+    }
+    #stage {
+      position: relative;
+      width: min(100vw, 75svh);
+      aspect-ratio: 3 / 4;
+      max-height: 100svh;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 50% 36%, #18362f 0%, #0a1715 38%, #040908 100%);
+      box-shadow: 0 0 90px rgba(0, 0, 0, 0.48);
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #identity {
+      position: absolute;
+      top: 6.7%;
+      left: 6.8%;
+      z-index: 4;
+      color: #e8ddc2;
+      font-family: Georgia, "Times New Roman", serif;
+      pointer-events: none;
+      opacity: 0;
+      animation: reveal 1.4s .3s cubic-bezier(.16,1,.3,1) forwards;
+    }
+    #identity .index {
+      display: block;
+      margin-bottom: 8px;
+      color: #8fb8aa;
+      font: 600 9px/1.2 system-ui, sans-serif;
+      letter-spacing: .32em;
+      text-transform: uppercase;
+    }
+    #identity h1 {
+      margin: 0;
+      font-size: clamp(27px, 4.2svh, 38px);
+      font-weight: 400;
+      line-height: .92;
+      letter-spacing: -.045em;
+    }
+    #identity p {
+      margin: 10px 0 0;
+      max-width: 265px;
+      color: rgba(214, 226, 219, .57);
+      font: 500 9px/1.4 system-ui, sans-serif;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(14px); filter: blur(5px); }
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #identity { animation: none; opacity: 1; }
+    }
+    #reset {
+      position: absolute;
+      top: 6.2%;
+      right: 6.5%;
+      z-index: 4;
+      width: 38px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(192, 176, 123, 0.28);
+      border-radius: 50%;
+      background: rgba(7, 16, 15, 0.58);
+      color: #d8c995;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      cursor: pointer;
+      font: 700 20px/1 system-ui, sans-serif;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+    #reset:hover {
+      transform: translateY(-1px);
+      background: rgba(22, 48, 42, 0.88);
+      border-color: rgba(117, 241, 194, 0.56);
+    }
+    #reset:active { transform: translateY(1px) scale(0.98); }
+    @media (max-width: 680px) {
+      #identity { top: 6.5%; left: 6.5%; }
+      #identity h1 { font-size: 27px; }
+      #identity p { display: none; }
+      #reset {
+        top: 5.8%;
+        right: 6%;
+        width: 34px;
+        height: 34px;
+        font-size: 18px;
+      }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="stage" aria-label="The Shape of Chance kinetic study">
+    <header id="identity">
+      <span class="index">Kinetic study · 0627</span>
+      <h1>The Shape<br>of Chance</h1>
+      <p>640 paths / one point of origin</p>
+    </header>
+    <button id="reset" type="button" aria-label="Restart simulation" title="Restart">↻</button>
+  </main>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+    import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+    const stage = document.getElementById("stage");
+    const resetButton = document.getElementById("reset");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let elapsedTime = 0;
+    let lastFrameTime = performance.now() * 0.001;
+
+    function stageSize() {
+      return {
+        width: Math.max(1, stage.clientWidth),
+        height: Math.max(1, stage.clientHeight)
+      };
+    }
+
+    // Scene and renderer
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      depth: true,
+      stencil: false,
+      precision: "highp",
+      preserveDrawingBuffer: true,
+      powerPreference: "high-performance"
+    });
+    const initialStageSize = stageSize();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(initialStageSize.width, initialStageSize.height, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    stage.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07100f);
+    scene.fog = new THREE.FogExp2(0x07100f, 0.018);
+
+    const camera = new THREE.PerspectiveCamera(
+      54,
+      initialStageSize.width / initialStageSize.height,
+      0.1,
+      90
+    );
+    const cameraTarget = new THREE.Vector3(0, 0.35, 0.62);
+    const cameraHome = new THREE.Vector3(0, 1.75, 19.2);
+    camera.position.copy(cameraHome);
+    camera.lookAt(cameraTarget);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const room = new RoomEnvironment();
+    const env = pmrem.fromScene(room, 0.03);
+    scene.environment = env.texture;
+    room.dispose();
+    pmrem.dispose();
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0x82cdb4, 0x020504, 0.62);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffe7b0, 4.4);
+    keyLight.position.set(-5.8, 12.8, 8.6);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 42;
+    keyLight.shadow.camera.left = -10;
+    keyLight.shadow.camera.right = 10;
+    keyLight.shadow.camera.top = 11;
+    keyLight.shadow.camera.bottom = -10;
+    keyLight.shadow.bias = -0.00045;
+    scene.add(keyLight);
+
+    const coolRim = new THREE.PointLight(0x42ffc1, 8.2, 23, 2);
+    coolRim.position.set(5.5, 3.6, 6.2);
+    scene.add(coolRim);
+
+    const amberCurveLight = new THREE.PointLight(0xffb84c, 5.4, 16, 2);
+    amberCurveLight.position.set(-3.6, -4.9, 3.4);
+    scene.add(amberCurveLight);
+
+    const gallerySpot = new THREE.SpotLight(0xffdda0, 23, 38, Math.PI * 0.12, 0.56, 1.55);
+    gallerySpot.position.set(0, 13.5, 10.5);
+    gallerySpot.target.position.set(0, 0.2, 0.5);
+    gallerySpot.castShadow = true;
+    scene.add(gallerySpot, gallerySpot.target);
+
+    // A single restrained light field unifies the entire observation surface.
+    function makeObservationGlowTexture() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 1024;
+      const context = canvas.getContext("2d");
+      const glow = context.createRadialGradient(256, 410, 0, 256, 410, 330);
+      glow.addColorStop(0, "rgba(114, 255, 208, 0.34)");
+      glow.addColorStop(0.42, "rgba(64, 210, 164, 0.12)");
+      glow.addColorStop(1, "rgba(21, 92, 74, 0)");
+      context.fillStyle = glow;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    const acrylicBackMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x18352f,
+      roughness: 0.12,
+      metalness: 0.0,
+      transmission: 0.12,
+      thickness: 1.1,
+      ior: 1.49,
+      transparent: true,
+      opacity: 0.62,
+      clearcoat: 0.82,
+      clearcoatRoughness: 0.08,
+      attenuationColor: 0x245b4c,
+      attenuationDistance: 1.8,
+      envMapIntensity: 1.25
+    });
+
+    const acrylicFrontMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xb7ffe9,
+      roughness: 0.035,
+      metalness: 0,
+      transmission: 0.76,
+      thickness: 0.55,
+      ior: 1.5,
+      transparent: true,
+      opacity: 0.085,
+      clearcoat: 1,
+      clearcoatRoughness: 0.015,
+      depthWrite: false,
+      attenuationColor: 0xf4fffb,
+      attenuationDistance: 3.0,
+      envMapIntensity: 1.35
+    });
+
+    const metalMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x111817,
+      roughness: 0.38,
+      metalness: 0.74,
+      clearcoat: 0.22,
+      clearcoatRoughness: 0.3,
+      envMapIntensity: 1.35
+    });
+
+    const frameInlayMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xb79a55,
+      roughness: 0.24,
+      metalness: 0.82,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.2,
+      emissive: 0x5d4514,
+      emissiveIntensity: 0.12,
+      envMapIntensity: 1.75
+    });
+
+    const observationGlowMaterial = new THREE.MeshBasicMaterial({
+      map: makeObservationGlowTexture(),
+      color: 0x71e7c1,
+      transparent: true,
+      opacity: 0.07,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    const lowerFieldMaterial = new THREE.MeshBasicMaterial({
+      color: 0x03110e,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false
+    });
+
+    const pinMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x08110f,
+      roughness: 0.135,
+      metalness: 0.9,
+      clearcoat: 0.72,
+      clearcoatRoughness: 0.12,
+      envMapIntensity: 2.2
+    });
+
+    const slotMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x9b743c,
+      roughness: 0.24,
+      metalness: 0.78,
+      clearcoat: 0.48,
+      clearcoatRoughness: 0.16,
+      envMapIntensity: 1.55
+    });
+
+    const beadMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x72ffd0,
+      roughness: 0.08,
+      metalness: 0.0,
+      transmission: 0.14,
+      thickness: 0.55,
+      ior: 1.47,
+      transparent: true,
+      opacity: 0.98,
+      clearcoat: 1,
+      clearcoatRoughness: 0.02,
+      emissive: 0x0bb987,
+      emissiveIntensity: 0.32,
+      attenuationColor: 0xb8ffeb,
+      attenuationDistance: 1.1,
+      iridescence: 0.16,
+      iridescenceIOR: 1.22,
+      envMapIntensity: 2.5
+    });
+
+    const histogramMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x28e6a8,
+      roughness: 0.22,
+      metalness: 0.06,
+      transparent: true,
+      opacity: 0.72,
+      clearcoat: 0.52,
+      emissive: 0x00c48c,
+      emissiveIntensity: 0.48,
+      depthWrite: false,
+      envMapIntensity: 1.25
+    });
+
+    const curveMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xffd36d,
+      roughness: 0.2,
+      metalness: 0.66,
+      clearcoat: 0.62,
+      emissive: 0xffae35,
+      emissiveIntensity: 0.42,
+      envMapIntensity: 2.0
+    });
+
+    const curveHaloMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffc958,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    const edgeLightMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xf7d884,
+      roughness: 0.17,
+      metalness: 0.42,
+      clearcoat: 0.65,
+      emissive: 0xffbf51,
+      emissiveIntensity: 0.18,
+      envMapIntensity: 1.8
+    });
+
+    // Board geometry
+    const ROWS = 14;
+    const BIN_COUNT = ROWS + 1;
+    const BEAD_COUNT = 640;
+    const DATE_SEED = 260627;
+    const PIN_SPACING = 0.64;
+    const ROW_GAP = 0.58;
+    const PIN_TOP_Y = 6.72;
+    const PIN_BOTTOM_Y = PIN_TOP_Y - (ROWS - 1) * ROW_GAP;
+    const SLOT_TOP_Y = PIN_BOTTOM_Y - ROW_GAP * 0.62;
+    const SLOT_FLOOR_Y = -7.18;
+    const BEAD_RADIUS = 0.112;
+    const SLOT_DIVIDER_HALF_WIDTH = 0.022;
+    const SLOT_PASSAGE_CLEARANCE = BEAD_RADIUS + SLOT_DIVIDER_HALF_WIDTH + 0.01;
+    const SLOT_ENTRY_Y = SLOT_TOP_Y + BEAD_RADIUS * 0.55;
+    const PIN_RADIUS = 0.064;
+    const GUIDE_RAIL_RADIUS = 0.065;
+    const EDGE_BRANCH_MARGIN = 0.018;
+    const EDGE_SLOPE = PIN_SPACING / (ROW_GAP * 2);
+    const EDGE_WALL_OFFSET = PIN_SPACING * 0.5 + BEAD_RADIUS + GUIDE_RAIL_RADIUS + EDGE_BRANCH_MARGIN;
+    const BEAD_Z = 1.04;
+    const FRONT_Z = 1.42;
+    const ORIGIN_Y = 7.48;
+    const ORIGIN_Z = BEAD_Z;
+
+    // Physics solver
+    const GRAVITY = -13.25;
+    const FIXED_DT = 1 / 120;
+    const MAX_STEPS = 24;
+    const PIN_RESTITUTION = 0.52;
+
+    // Shared release channel for all non-interacting beads.
+    const THROAT_TOP_Y = ORIGIN_Y;
+    const THROAT_BOTTOM_Y = PIN_TOP_Y + 0.28;
+    const THROAT_EXIT_RADIUS = 0.026;
+    const THROAT_ENTRY_RADIUS = 0.072;
+    const RELEASE_DURATION = 3;
+    const SPEED_SCALE = prefersReducedMotion ? 0.45 : 1.0;
+
+    const device = new THREE.Group();
+    scene.add(device);
+
+    // Board assembly
+    function addRoundedBox(width, height, depth, x, y, z, material, radius = 0.06) {
+      const mesh = new THREE.Mesh(new RoundedBoxGeometry(width, height, depth, 5, radius), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      device.add(mesh);
+      return mesh;
+    }
+
+    const acrylicBack = addRoundedBox(12.55, 16.45, 0.16, 0, 0.48, 0.2, acrylicBackMaterial, 0.24);
+    acrylicBack.renderOrder = 1;
+
+    const observationGlow = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.2, 14.9),
+      observationGlowMaterial
+    );
+    observationGlow.position.set(0, 0.56, 0.31);
+    observationGlow.renderOrder = 1;
+    device.add(observationGlow);
+
+    const lowerField = new THREE.Mesh(
+      new THREE.PlaneGeometry(10.2, 5.12),
+      lowerFieldMaterial
+    );
+    lowerField.position.set(0, -4.62, 0.34);
+    lowerField.renderOrder = 1;
+    device.add(lowerField);
+
+    // An opaque collector cover hides the full exit path behind the lower frame.
+    const collectorCover = addRoundedBox(
+      12.08,
+      0.88,
+      0.14,
+      0,
+      -7.38,
+      1.3,
+      metalMaterial,
+      0.05
+    );
+    collectorCover.castShadow = false;
+    collectorCover.renderOrder = 6;
+
+    const frontPane = addRoundedBox(12.18, 16.05, 0.035, 0, 0.46, FRONT_Z, acrylicFrontMaterial, 0.18);
+    frontPane.renderOrder = 4;
+    frontPane.castShadow = false;
+
+    // Slim gunmetal shell with one continuous brass inlay.
+    addRoundedBox(13.02, 0.26, 0.46, 0, 8.72, 0.69, metalMaterial, 0.065);
+    addRoundedBox(13.02, 0.28, 0.46, 0, -7.66, 0.69, metalMaterial, 0.065);
+    addRoundedBox(0.25, 16.22, 0.46, -6.39, 0.52, 0.69, metalMaterial, 0.065);
+    addRoundedBox(0.25, 16.22, 0.46, 6.39, 0.52, 0.69, metalMaterial, 0.065);
+
+    const frameInlays = [
+      addRoundedBox(12.53, 0.034, 0.045, 0, 8.56, 0.96, frameInlayMaterial, 0.012),
+      addRoundedBox(12.53, 0.034, 0.045, 0, -7.76, 1.39, frameInlayMaterial, 0.012),
+      addRoundedBox(0.034, 16.08, 0.045, -6.255, 0.535, 0.96, frameInlayMaterial, 0.012),
+      addRoundedBox(0.034, 16.08, 0.045, 6.255, 0.535, 0.96, frameInlayMaterial, 0.012)
+    ];
+    frameInlays.forEach((inlay) => {
+      inlay.castShadow = false;
+      inlay.receiveShadow = false;
+    });
+
+    const originStemMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xe2fff8,
+      roughness: 0.025,
+      metalness: 0,
+      transmission: 0.58,
+      thickness: 1.1,
+      ior: 1.5,
+      transparent: true,
+      opacity: 0.21,
+      clearcoat: 1,
+      clearcoatRoughness: 0.02,
+      depthWrite: false,
+      attenuationColor: 0xeefff9,
+      attenuationDistance: 2.7,
+      envMapIntensity: 1.45,
+      side: THREE.DoubleSide
+    });
+
+    const originGlowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x58f3c0,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const originRingMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xd7bf78,
+      roughness: 0.16,
+      metalness: 0.76,
+      clearcoat: 0.7,
+      emissive: 0x8b6b24,
+      emissiveIntensity: 0.2,
+      envMapIntensity: 2.0
+    });
+
+    const originGroup = new THREE.Group();
+    originGroup.position.set(0, ORIGIN_Y, ORIGIN_Z);
+    device.add(originGroup);
+
+    const originHalo = new THREE.Mesh(
+      new THREE.CircleGeometry(0.38, 48),
+      originGlowMaterial
+    );
+    originHalo.position.z = -0.055;
+    originGroup.add(originHalo);
+
+    const originRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.29, 0.018, 8, 72),
+      originRingMaterial
+    );
+    originRing.position.z = 0.018;
+    originRing.castShadow = true;
+    originGroup.add(originRing);
+
+    const originStem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.052, 0.04, 0.46, 28),
+      originStemMaterial
+    );
+    originStem.position.set(0, -0.47, 0);
+    originStem.castShadow = true;
+    originStem.renderOrder = 3;
+    originGroup.add(originStem);
+
+    const originPointLight = new THREE.PointLight(0x54f2bd, 2.4, 3.2, 2);
+    originPointLight.position.set(0, 0, 0.35);
+    originGroup.add(originPointLight);
+
+    function edgeRailCenterAtY(y) {
+      return EDGE_WALL_OFFSET + (PIN_TOP_Y - y) * EDGE_SLOPE;
+    }
+
+    function addGuideRail(side) {
+      const points = [
+        new THREE.Vector3(side * edgeRailCenterAtY(PIN_TOP_Y + 0.62), PIN_TOP_Y + 0.62, 1.02)
+      ];
+      for (let row = 0; row < ROWS; row++) {
+        const y = PIN_TOP_Y - row * ROW_GAP;
+        points.push(new THREE.Vector3(side * edgeRailCenterAtY(y), y, 1.02));
+      }
+      points.push(new THREE.Vector3(
+        side * edgeRailCenterAtY(SLOT_TOP_Y),
+        SLOT_TOP_Y,
+        1.02
+      ));
+
+      const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.5);
+      const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, GUIDE_RAIL_RADIUS, 10, false), metalMaterial);
+      rail.castShadow = true;
+      rail.receiveShadow = true;
+      device.add(rail);
+
+      const highlight = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.018, 8, false), edgeLightMaterial);
+      highlight.position.z += 0.08;
+      highlight.castShadow = false;
+      device.add(highlight);
+    }
+    addGuideRail(-1);
+    addGuideRail(1);
+
+    const pinPositions = [];
+    const rowPins = [];
+    for (let row = 0; row < ROWS; row++) {
+      const count = row + 1;
+      const y = PIN_TOP_Y - row * ROW_GAP;
+      rowPins[row] = [];
+      for (let col = 0; col < count; col++) {
+        const x = (col - row * 0.5) * PIN_SPACING;
+        const pin = { x, y, row };
+        pinPositions.push(pin);
+        rowPins[row].push(pin);
+      }
+    }
+
+    const dummy = new THREE.Object3D();
+    const pinGeometry = new THREE.CylinderGeometry(0.052, 0.052, 0.72, 32);
+    const pinMesh = new THREE.InstancedMesh(pinGeometry, pinMaterial, pinPositions.length);
+    pinMesh.castShadow = true;
+    pinMesh.receiveShadow = true;
+    pinPositions.forEach((pin, i) => {
+      dummy.position.set(pin.x, pin.y, 0.72);
+      dummy.rotation.set(Math.PI / 2, 0, 0);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      pinMesh.setMatrixAt(i, dummy.matrix);
+    });
+    device.add(pinMesh);
+
+    const capGeometry = new THREE.SphereGeometry(0.076, 24, 12);
+    const capMesh = new THREE.InstancedMesh(capGeometry, pinMaterial, pinPositions.length);
+    capMesh.castShadow = true;
+    capMesh.receiveShadow = true;
+    pinPositions.forEach((pin, i) => {
+      dummy.position.set(pin.x, pin.y, 1.1);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      capMesh.setMatrixAt(i, dummy.matrix);
+    });
+    device.add(capMesh);
+
+    const slotBoundaryLeft = -BIN_COUNT * PIN_SPACING * 0.5;
+    const slotHeight = SLOT_TOP_Y - SLOT_FLOOR_Y + 0.16;
+
+    const lcdCellWidth = 88;
+    const lcdCanvas = document.createElement("canvas");
+    lcdCanvas.width = BIN_COUNT * lcdCellWidth;
+    lcdCanvas.height = 96;
+    const lcdContext = lcdCanvas.getContext("2d");
+    const lcdTexture = new THREE.CanvasTexture(lcdCanvas);
+    lcdTexture.colorSpace = THREE.SRGBColorSpace;
+    lcdTexture.minFilter = THREE.LinearFilter;
+    lcdTexture.magFilter = THREE.LinearFilter;
+
+    const totalLCDCanvas = document.createElement("canvas");
+    totalLCDCanvas.width = 132;
+    totalLCDCanvas.height = 96;
+    const totalLCDContext = totalLCDCanvas.getContext("2d");
+    const totalLCDTexture = new THREE.CanvasTexture(totalLCDCanvas);
+    totalLCDTexture.colorSpace = THREE.SRGBColorSpace;
+    totalLCDTexture.minFilter = THREE.LinearFilter;
+    totalLCDTexture.magFilter = THREE.LinearFilter;
+
+    const lcdDigitsMaterial = new THREE.MeshBasicMaterial({
+      map: lcdTexture,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false
+    });
+
+    const totalLCDDigitsMaterial = new THREE.MeshBasicMaterial({
+      map: totalLCDTexture,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false
+    });
+
+    const lcdDigits = new THREE.Mesh(
+      new THREE.PlaneGeometry(BIN_COUNT * PIN_SPACING - 0.14, 0.4),
+      lcdDigitsMaterial
+    );
+    lcdDigits.position.set(0, -7.38, 1.414);
+    lcdDigits.renderOrder = 3;
+    device.add(lcdDigits);
+
+    const totalCounterX = BIN_COUNT * PIN_SPACING * 0.5 + 0.61;
+    const totalLCDDigits = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.04, 0.4),
+      totalLCDDigitsMaterial
+    );
+    totalLCDDigits.position.set(totalCounterX, -7.38, 1.414);
+    totalLCDDigits.renderOrder = 3;
+    device.add(totalLCDDigits);
+
+    const lcdPulse = new Array(BIN_COUNT).fill(0);
+    const sevenSegmentMap = {
+      0: [1, 1, 1, 1, 1, 1, 0],
+      1: [0, 1, 1, 0, 0, 0, 0],
+      2: [1, 1, 0, 1, 1, 0, 1],
+      3: [1, 1, 1, 1, 0, 0, 1],
+      4: [0, 1, 1, 0, 0, 1, 1],
+      5: [1, 0, 1, 1, 0, 1, 1],
+      6: [1, 0, 1, 1, 1, 1, 1],
+      7: [1, 1, 1, 0, 0, 0, 0],
+      8: [1, 1, 1, 1, 1, 1, 1],
+      9: [1, 1, 1, 1, 0, 1, 1]
+    };
+
+    function drawSevenSegmentDigit(context, digit, x, y, intensity) {
+      const active = sevenSegmentMap[digit];
+      const width = 20;
+      const height = 48;
+      const thickness = 4;
+      const segments = [
+        [x + thickness, y, width - thickness * 2, thickness],
+        [x + width - thickness, y + thickness, thickness, height * 0.5 - thickness],
+        [x + width - thickness, y + height * 0.5, thickness, height * 0.5 - thickness],
+        [x + thickness, y + height - thickness, width - thickness * 2, thickness],
+        [x, y + height * 0.5, thickness, height * 0.5 - thickness],
+        [x, y + thickness, thickness, height * 0.5 - thickness],
+        [x + thickness, y + height * 0.5 - thickness * 0.5, width - thickness * 2, thickness]
+      ];
+
+      segments.forEach((segment, index) => {
+        if (!active[index]) return;
+        context.fillStyle = `rgba(255, ${Math.round(38 + intensity * 72)}, ${Math.round(28 + intensity * 24)}, 1)`;
+        context.shadowColor = "rgba(255, 28, 18, 0.9)";
+        context.shadowBlur = 5 + intensity * 7;
+        context.fillRect(...segment);
+      });
+    }
+
+    function drawTotalCounter() {
+      totalLCDContext.clearRect(0, 0, totalLCDCanvas.width, totalLCDCanvas.height);
+
+      const total = slotCounts.reduce((sum, count) => sum + count, 0);
+      const intensity = Math.max(...lcdPulse);
+      totalLCDContext.fillStyle = "rgba(255, 66, 48, 0.96)";
+      totalLCDContext.shadowColor = "rgba(255, 28, 18, 0.92)";
+      totalLCDContext.shadowBlur = 8 + intensity * 7;
+      totalLCDContext.font = "700 43px Georgia, serif";
+      totalLCDContext.textAlign = "center";
+      totalLCDContext.textBaseline = "middle";
+      totalLCDContext.fillText("Σ", 18, 48);
+
+      const digits = String(Math.min(999, total)).padStart(3, "0");
+      for (let index = 0; index < 3; index++) {
+        drawSevenSegmentDigit(totalLCDContext, Number(digits[index]), 42 + index * 24, 24, intensity);
+      }
+      totalLCDContext.shadowBlur = 0;
+      totalLCDTexture.needsUpdate = true;
+    }
+
+    function drawSlotCounters() {
+      lcdContext.clearRect(0, 0, lcdCanvas.width, lcdCanvas.height);
+
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        const cellX = bin * lcdCellWidth;
+        const digits = String(Math.min(999, slotCounts[bin])).padStart(3, "0");
+        const digitStart = cellX + 8;
+        for (let index = 0; index < 3; index++) {
+          drawSevenSegmentDigit(lcdContext, Number(digits[index]), digitStart + index * 24, 24, lcdPulse[bin]);
+        }
+      }
+      lcdContext.shadowBlur = 0;
+      lcdTexture.needsUpdate = true;
+      drawTotalCounter();
+    }
+
+    function updateLCDPulses(delta) {
+      let redraw = false;
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        if (lcdPulse[bin] <= 0) continue;
+        lcdPulse[bin] = Math.max(0, lcdPulse[bin] - delta * 7.5);
+        redraw = true;
+      }
+      if (redraw) drawSlotCounters();
+    }
+
+    const dividerGeometry = new RoundedBoxGeometry(SLOT_DIVIDER_HALF_WIDTH * 2, slotHeight, 0.34, 4, 0.018);
+    const dividerMesh = new THREE.InstancedMesh(dividerGeometry, slotMaterial, BIN_COUNT + 1);
+    dividerMesh.castShadow = true;
+    dividerMesh.receiveShadow = true;
+    for (let i = 0; i <= BIN_COUNT; i++) {
+      dummy.position.set(slotBoundaryLeft + i * PIN_SPACING, (SLOT_TOP_Y + SLOT_FLOOR_Y) * 0.5, 1.02);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      dividerMesh.setMatrixAt(i, dummy.matrix);
+    }
+    device.add(dividerMesh);
+
+    function binCenterX(bin) {
+      return (bin - (BIN_COUNT - 1) * 0.5) * PIN_SPACING;
+    }
+
+    function binomial(n, k) {
+      let value = 1;
+      for (let i = 1; i <= k; i++) value = value * (n - i + 1) / i;
+      return value;
+    }
+
+    // Ideal binomial reference curve
+    const binomialProfile = [];
+    const centerProbability = binomial(ROWS, Math.floor(ROWS / 2)) / Math.pow(2, ROWS);
+    for (let bin = 0; bin < BIN_COUNT; bin++) {
+      const probability = binomial(ROWS, bin) / Math.pow(2, ROWS);
+      binomialProfile.push(probability / centerProbability);
+    }
+
+    const histogramMaxHeight = SLOT_TOP_Y - SLOT_FLOOR_Y - 0.22;
+    const histogramMaxCount = Math.max(1, BEAD_COUNT * centerProbability * 1.15);
+    const histogramCurrent = new Array(BIN_COUNT).fill(0);
+    const histogramTarget = new Array(BIN_COUNT).fill(0);
+    const histogramGeometry = new RoundedBoxGeometry(PIN_SPACING * 0.72, 1, 0.11, 5, 0.028);
+    const histogramMesh = new THREE.InstancedMesh(histogramGeometry, histogramMaterial, BIN_COUNT);
+    histogramMesh.castShadow = false;
+    histogramMesh.receiveShadow = false;
+    histogramMesh.renderOrder = 2;
+    device.add(histogramMesh);
+
+    function updateHistogramInstances(delta, snap = false) {
+      const blend = snap ? 1 : 1 - Math.exp(-8 * delta);
+      for (let bin = 0; bin < BIN_COUNT; bin++) {
+        histogramCurrent[bin] += (histogramTarget[bin] - histogramCurrent[bin]) * blend;
+        const height = Math.max(0.001, histogramCurrent[bin]);
+        dummy.position.set(binCenterX(bin), SLOT_FLOOR_Y + height * 0.5, 0.55);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, height, 1);
+        dummy.updateMatrix();
+        histogramMesh.setMatrixAt(bin, dummy.matrix);
+      }
+      histogramMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    updateHistogramInstances(0, true);
+
+    const curvePoints = [];
+    for (let bin = 0; bin < BIN_COUNT; bin++) {
+      curvePoints.push(new THREE.Vector3(
+        binCenterX(bin),
+        SLOT_FLOOR_Y + 0.42 + binomialProfile[bin] * 3.45,
+        1.49
+      ));
+    }
+    const curvePath = new THREE.CatmullRomCurve3(curvePoints);
+    const curveHalo = new THREE.Mesh(new THREE.TubeGeometry(curvePath, 180, 0.072, 14, false), curveHaloMaterial);
+    curveHalo.castShadow = false;
+    curveHalo.renderOrder = 7;
+    device.add(curveHalo);
+
+    const curveLine = new THREE.Mesh(new THREE.TubeGeometry(curvePath, 180, 0.026, 12, false), curveMaterial);
+    curveLine.castShadow = false;
+    curveLine.renderOrder = 8;
+    device.add(curveLine);
+
+    const beadGeometry = new THREE.SphereGeometry(BEAD_RADIUS, 30, 18);
+    const beadMesh = new THREE.InstancedMesh(beadGeometry, beadMaterial, BEAD_COUNT);
+    beadMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    beadMesh.castShadow = true;
+    beadMesh.receiveShadow = true;
+    beadMesh.frustumCulled = false;
+    beadMesh.renderOrder = 5;
+    device.add(beadMesh);
+
+    function mulberry32(seed) {
+      return function random() {
+        seed |= 0;
+        seed = seed + 0x6d2b79f5 | 0;
+        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function smoothstep(edge0, edge1, value) {
+      const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
+
+    function railHalfWidthAtY(y) {
+      if (y > PIN_TOP_Y) {
+        if (y >= THROAT_BOTTOM_Y) {
+          const throatT = smoothstep(THROAT_BOTTOM_Y, THROAT_TOP_Y, y);
+          return THROAT_EXIT_RADIUS
+            + (THROAT_ENTRY_RADIUS - THROAT_EXIT_RADIUS) * throatT;
+        }
+        const t = smoothstep(PIN_TOP_Y, THROAT_BOTTOM_Y, y);
+        const firstBranchLimit = PIN_SPACING * 0.5 + EDGE_BRANCH_MARGIN;
+        return firstBranchLimit + (THROAT_EXIT_RADIUS - firstBranchLimit) * t;
+      }
+      if (y > SLOT_TOP_Y) {
+        return edgeRailCenterAtY(y) - GUIDE_RAIL_RADIUS - BEAD_RADIUS;
+      }
+      return BIN_COUNT * PIN_SPACING * 0.5 - BEAD_RADIUS;
+    }
+
+    // Simulation state
+    let runIndex = 0;
+    let random = mulberry32(DATE_SEED);
+    const beads = [];
+    const slotCounts = new Array(BIN_COUNT).fill(0);
+    const tmpEuler = new THREE.Euler();
+    const tmpQuaternion = new THREE.Quaternion();
+    const stats = {
+      frame: 0,
+      beadCount: BEAD_COUNT,
+      binCount: BIN_COUNT,
+      settled: 0,
+      exited: 0,
+      active: 0,
+      seed: DATE_SEED,
+      bins: new Array(BIN_COUNT).fill(0),
+      sample: null,
+      physicsHz: Math.round(1 / FIXED_DT)
+    };
+    window.__galtonBoard260703V1Stats = stats;
+
+    function makeBead(index) {
+      const decisions = [];
+      const kicks = [];
+      for (let row = 0; row < ROWS; row++) {
+        const direction = random() > 0.5 ? 1 : -1;
+        decisions.push(direction);
+        kicks.push(0.84 + random() * 0.42);
+      }
+
+      return {
+        state: "waiting",
+        releaseAt: index / Math.max(1, BEAD_COUNT - 1) * RELEASE_DURATION,
+        position: new THREE.Vector3(0, ORIGIN_Y, ORIGIN_Z),
+        velocity: new THREE.Vector3(0, 0, 0),
+        decisions,
+        kicks,
+        nextRow: 0,
+        phase: random() * Math.PI * 2,
+        spin: 5.8 + random() * 12.2,
+        scale: 1,
+        slotIndex: -1,
+        counted: false
+      };
+    }
+
+    function resetSimulation(useEntropy) {
+      runIndex++;
+      const entropy = useEntropy ? ((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0) : 0;
+      const seed = (DATE_SEED ^ entropy ^ Math.imul(runIndex, 0x85ebca6b)) >>> 0;
+      random = mulberry32(seed || DATE_SEED);
+      stats.seed = seed || DATE_SEED;
+      stats.settled = 0;
+      stats.exited = 0;
+      stats.active = 0;
+      stats.frame = 0;
+      stats.sample = null;
+      stats.bins.fill(0);
+      slotCounts.fill(0);
+      lcdPulse.fill(0);
+      drawSlotCounters();
+      histogramCurrent.fill(0);
+      histogramTarget.fill(0);
+      updateHistogramInstances(0, true);
+      beads.length = 0;
+
+      physicsAccumulator = 0;
+      simulationTime = 0;
+      releaseElapsed = 0;
+      for (let i = 0; i < BEAD_COUNT; i++) beads.push(makeBead(i));
+
+      updateBeadInstances(simulationTime);
+    }
+
+    function assignSlot(bead) {
+      if (bead.slotIndex >= 0) return;
+      // The landing bin now comes from the simulated position, not a preselected outcome.
+      const bin = clamp(Math.floor((bead.position.x - slotBoundaryLeft) / PIN_SPACING), 0, BIN_COUNT - 1);
+      const left = slotBoundaryLeft + bin * PIN_SPACING + SLOT_PASSAGE_CLEARANCE;
+      const right = slotBoundaryLeft + (bin + 1) * PIN_SPACING - SLOT_PASSAGE_CLEARANCE;
+      bead.slotIndex = bin;
+      bead.position.x = clamp(bead.position.x, left, right);
+      bead.position.z = BEAD_Z;
+    }
+
+    function countSlotPassage(bead) {
+      if (bead.counted || bead.slotIndex < 0) return;
+      const bin = bead.slotIndex;
+      bead.counted = true;
+      slotCounts[bin]++;
+      stats.bins[bin] = slotCounts[bin];
+      lcdPulse[bin] = 1;
+      drawSlotCounters();
+      histogramTarget[bin] = clamp(slotCounts[bin] / histogramMaxCount, 0, 1) * histogramMaxHeight;
+    }
+
+    function keepInsideDevice(bead) {
+      const limit = Math.max(THROAT_EXIT_RADIUS, railHalfWidthAtY(bead.position.y));
+      if (bead.position.x < -limit) {
+        bead.position.x = -limit;
+        if (bead.velocity.x < 0) {
+          bead.velocity.x *= -0.28;
+          bead.velocity.y *= 0.985;
+        }
+      } else if (bead.position.x > limit) {
+        bead.position.x = limit;
+        if (bead.velocity.x > 0) {
+          bead.velocity.x *= -0.28;
+          bead.velocity.y *= 0.985;
+        }
+      }
+
+      const minZ = bead.position.y > PIN_TOP_Y + 0.55 ? 0.75 : 0.88;
+      const maxZ = 1.24;
+      if (bead.position.z < minZ) {
+        bead.position.z = minZ;
+        if (bead.velocity.z < 0) bead.velocity.z *= -0.32;
+      } else if (bead.position.z > maxZ) {
+        bead.position.z = maxZ;
+        if (bead.velocity.z > 0) bead.velocity.z *= -0.32;
+      }
+
+      // Keep every independent trajectory aligned with the shared origin axis.
+      if (bead.position.y <= THROAT_TOP_Y && bead.position.y >= THROAT_BOTTOM_Y) {
+        const throatT = smoothstep(THROAT_BOTTOM_Y, THROAT_TOP_Y, bead.position.y);
+        const centerLimit = THROAT_EXIT_RADIUS
+          + (THROAT_ENTRY_RADIUS - THROAT_EXIT_RADIUS) * throatT;
+        const dx = bead.position.x;
+        const dz = bead.position.z - BEAD_Z;
+        const radialDistance = Math.hypot(dx, dz);
+        if (radialDistance > centerLimit) {
+          const nx = dx / radialDistance;
+          const nz = dz / radialDistance;
+          bead.position.x = nx * centerLimit;
+          bead.position.z = BEAD_Z + nz * centerLimit;
+          const outwardSpeed = bead.velocity.x * nx + bead.velocity.z * nz;
+          if (outwardSpeed > 0) {
+            bead.velocity.x -= nx * outwardSpeed * 1.32;
+            bead.velocity.z -= nz * outwardSpeed * 1.32;
+          }
+        }
+      }
+    }
+
+    function applyDecisionKick(bead, previousY) {
+      while (bead.nextRow < ROWS) {
+        const rowY = PIN_TOP_Y - bead.nextRow * ROW_GAP;
+        if (!(previousY >= rowY + 0.055 && bead.position.y <= rowY + 0.055)) break;
+        const direction = bead.decisions[bead.nextRow];
+        const kick = direction * (0.86 + bead.kicks[bead.nextRow] * 0.34);
+        // A peg redirects horizontal momentum; it does not continually add energy.
+        // Resetting most of the prior lateral speed produces a true random walk.
+        bead.velocity.x = bead.velocity.x * 0.16 + kick;
+        bead.velocity.y = Math.min(bead.velocity.y * 0.78, -0.24);
+        bead.velocity.z += Math.sin(bead.phase + bead.nextRow * 1.73) * 0.085;
+        bead.nextRow++;
+      }
+    }
+
+    function resolvePinCollisions(bead) {
+      const minDistance = BEAD_RADIUS + PIN_RADIUS;
+      const minDistanceSq = minDistance * minDistance;
+      const rowGuess = Math.round((PIN_TOP_Y - bead.position.y) / ROW_GAP);
+
+      for (let row = Math.max(0, rowGuess - 1); row <= Math.min(ROWS - 1, rowGuess + 1); row++) {
+        const pins = rowPins[row];
+        for (let i = 0; i < pins.length; i++) {
+          const pin = pins[i];
+          const dx = bead.position.x - pin.x;
+          const dy = bead.position.y - pin.y;
+          if (Math.abs(dx) > 0.31 || Math.abs(dy) > 0.31) continue;
+          const distanceSq = dx * dx + dy * dy;
+          if (distanceSq >= minDistanceSq) continue;
+
+          const distance = Math.sqrt(Math.max(distanceSq, 0.000001));
+          const nx = dx / distance;
+          const ny = dy / distance;
+          const push = minDistance - distance + 0.004;
+          bead.position.x += nx * push;
+          bead.position.y += ny * push;
+
+          const normalVelocity = bead.velocity.x * nx + bead.velocity.y * ny;
+          if (normalVelocity < 0) {
+            const impulse = -(1.0 + PIN_RESTITUTION) * normalVelocity;
+            bead.velocity.x += impulse * nx;
+            bead.velocity.y += impulse * ny;
+          }
+
+          const tx = -ny;
+          const ty = nx;
+          const tangent = bead.velocity.x * tx + bead.velocity.y * ty;
+          bead.velocity.x -= tangent * tx * 0.13;
+          bead.velocity.y -= tangent * ty * 0.13;
+          bead.velocity.x += Math.sin(bead.phase + row * 0.9 + i * 0.33) * 0.022;
+          bead.velocity.z += Math.cos(bead.phase + row * 0.45) * 0.012;
+        }
+      }
+    }
+
+    function enforceParticleBounds() {
+      for (let i = 0; i < beads.length; i++) {
+        const bead = beads[i];
+        if (bead.state === "release" || bead.state === "falling") {
+          keepInsideDevice(bead);
+          const maxSpeed = bead.state === "falling" ? 10.2 : 5.4;
+          if (bead.velocity.lengthSq() > maxSpeed * maxSpeed) bead.velocity.setLength(maxSpeed);
+        }
+      }
+    }
+
+    function stepBead(bead, dt, time, releaseTime) {
+      if (bead.state === "exited") return;
+
+      if (bead.state === "waiting") {
+        if (releaseTime < bead.releaseAt) return;
+        bead.state = "release";
+      }
+
+      if (bead.state === "release") {
+        const throatPull = 4.2 + (1 - clamp((bead.position.y - PIN_TOP_Y) / 2.4, 0, 1)) * 8.0;
+        bead.velocity.y += GRAVITY * 0.47 * dt;
+        bead.velocity.x += -bead.position.x * throatPull * dt;
+        bead.velocity.z += (BEAD_Z - bead.position.z) * 6.2 * dt;
+        bead.velocity.x += Math.sin(time * 5.2 + bead.phase) * 0.045 * dt;
+        bead.velocity.multiplyScalar(Math.exp(-2.4 * dt));
+        if (bead.velocity.lengthSq() > 26) bead.velocity.setLength(Math.sqrt(26));
+        bead.position.addScaledVector(bead.velocity, dt);
+        keepInsideDevice(bead);
+        if (bead.position.y <= PIN_TOP_Y + 0.44) {
+          bead.state = "falling";
+          bead.nextRow = 0;
+          bead.velocity.y = Math.min(bead.velocity.y, -0.6);
+        }
+        return;
+      }
+
+      if (bead.state === "falling") {
+        const previousY = bead.position.y;
+        bead.velocity.y += GRAVITY * dt;
+        bead.velocity.x += Math.sin(time * 8.0 + bead.phase * 1.7) * 0.028;
+        bead.velocity.z += (BEAD_Z - bead.position.z) * 12.5 * dt;
+        const drag = Math.exp(-0.56 * dt);
+        bead.velocity.x *= drag;
+        bead.velocity.y = Math.max(bead.velocity.y * drag, -9.8);
+        bead.velocity.z *= Math.exp(-2.1 * dt);
+        bead.position.addScaledVector(bead.velocity, dt);
+
+        resolvePinCollisions(bead);
+        applyDecisionKick(bead, previousY);
+        keepInsideDevice(bead);
+
+        if (bead.position.y <= SLOT_ENTRY_Y) {
+          assignSlot(bead);
+          bead.state = "draining";
+          bead.velocity.x = clamp(bead.velocity.x, -1.1, 1.1);
+          bead.velocity.y = clamp(bead.velocity.y, -5.8, -1.2);
+          bead.velocity.z = 0;
+        }
+        return;
+      }
+
+      if (bead.state === "draining") {
+        const previousY = bead.position.y;
+        const targetX = binCenterX(bead.slotIndex);
+        bead.velocity.y += GRAVITY * 0.72 * dt;
+        bead.velocity.x += (targetX - bead.position.x) * 5.4 * dt;
+        bead.velocity.x *= Math.exp(-2.8 * dt);
+        bead.velocity.y = Math.max(bead.velocity.y, -8.4);
+        bead.position.addScaledVector(bead.velocity, dt);
+        bead.position.z = BEAD_Z;
+        bead.velocity.z = 0;
+
+        const left = slotBoundaryLeft + bead.slotIndex * PIN_SPACING + SLOT_PASSAGE_CLEARANCE;
+        const right = slotBoundaryLeft + (bead.slotIndex + 1) * PIN_SPACING - SLOT_PASSAGE_CLEARANCE;
+        bead.position.x = clamp(bead.position.x, left, right);
+
+        if (previousY > SLOT_FLOOR_Y && bead.position.y <= SLOT_FLOOR_Y) {
+          countSlotPassage(bead);
+        }
+
+        if (bead.position.y < SLOT_FLOOR_Y - 0.62) {
+          bead.state = "exited";
+          bead.position.set(0, -30, 0);
+          bead.velocity.set(0, 0, 0);
+        }
+      }
+    }
+
+    let simulationTime = 0;
+    let releaseElapsed = 0;
+    let physicsAccumulator = 0;
+
+    function physicsStep(dt) {
+      releaseElapsed += dt;
+      simulationTime += dt * SPEED_SCALE;
+      for (let i = 0; i < beads.length; i++) {
+        stepBead(beads[i], dt * SPEED_SCALE, simulationTime, releaseElapsed);
+      }
+      enforceParticleBounds();
+    }
+
+    function updateBeadInstances(time) {
+      let active = 0;
+      let exited = 0;
+      let sample = null;
+
+      for (let i = 0; i < beads.length; i++) {
+        const bead = beads[i];
+        if (bead.state !== "waiting" && bead.state !== "exited") active++;
+        if (bead.state === "exited") exited++;
+        if (!sample && bead.state !== "waiting" && bead.state !== "exited") {
+          sample = [
+            bead.state,
+            Number(bead.position.x.toFixed(2)),
+            Number(bead.position.y.toFixed(2)),
+            Number(bead.position.z.toFixed(2))
+          ];
+        }
+
+        const age = time;
+        dummy.position.copy(bead.position);
+        tmpEuler.set(age * bead.spin, age * bead.spin * 0.62 + bead.phase, age * bead.spin * 0.37);
+        tmpQuaternion.setFromEuler(tmpEuler);
+        dummy.quaternion.copy(tmpQuaternion);
+        dummy.scale.setScalar(bead.state === "exited" ? 0 : bead.scale);
+        dummy.updateMatrix();
+        beadMesh.setMatrixAt(i, dummy.matrix);
+      }
+
+      beadMesh.instanceMatrix.needsUpdate = true;
+      stats.active = active;
+      stats.settled = exited;
+      stats.exited = exited;
+      stats.sample = sample;
+    }
+
+    function fitCamera() {
+      const { width, height } = stageSize();
+      camera.aspect = width / height;
+      camera.fov = camera.aspect < 0.72 ? 59 : 54;
+      camera.updateProjectionMatrix();
+      const narrow = camera.aspect < 0.72;
+      cameraHome.set(0, narrow ? 0.72 : 1.75, narrow ? 24.6 : 19.2);
+      camera.position.copy(cameraHome);
+      camera.lookAt(cameraTarget);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, false);
+    }
+    window.addEventListener("resize", fitCamera);
+
+    resetSimulation(false);
+    fitCamera();
+
+    resetButton.addEventListener("click", () => {
+      resetSimulation(true);
+      resetButton.animate(
+        [
+          { transform: "rotate(0deg) scale(1)" },
+          { transform: "rotate(360deg) scale(0.92)" },
+          { transform: "rotate(360deg) scale(1)" }
+        ],
+        { duration: 420, easing: "cubic-bezier(.22,.61,.36,1)" }
+      );
+    });
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now() * 0.001;
+      const delta = Math.min(now - lastFrameTime, 0.055);
+      lastFrameTime = now;
+      elapsedTime += delta;
+      physicsAccumulator += delta;
+      let steps = 0;
+      while (physicsAccumulator >= FIXED_DT && steps < MAX_STEPS) {
+        physicsStep(FIXED_DT);
+        physicsAccumulator -= FIXED_DT;
+        steps++;
+      }
+      if (steps === MAX_STEPS) physicsAccumulator = 0;
+
+      const elapsed = elapsedTime;
+      updateBeadInstances(simulationTime);
+      updateHistogramInstances(delta);
+      updateLCDPulses(delta);
+
+      const entrance = prefersReducedMotion ? 1 : 1 - Math.exp(-elapsed * 2.1);
+      device.position.y = (1 - entrance) * 0.46;
+      device.scale.setScalar(0.965 + entrance * 0.035);
+
+      const releaseTail = Math.max(0, releaseElapsed - RELEASE_DURATION);
+      const originPulse = prefersReducedMotion
+        ? 0
+        : (releaseElapsed < RELEASE_DURATION
+          ? 0.16 + Math.sin(elapsed * 5.2) * 0.04
+          : 0.16 * Math.exp(-releaseTail * 1.8));
+      const originBreath = prefersReducedMotion ? 1 : 1 + Math.sin(elapsed * 2.4) * 0.035;
+      originHalo.scale.setScalar(originBreath + originPulse * 0.24);
+      originGlowMaterial.opacity = 0.1 + originPulse * 0.28 + Math.sin(elapsed * 1.8) * 0.025;
+      originRing.scale.setScalar(1 + originPulse * 0.06);
+      originPointLight.intensity = 1.8 + originPulse * 3.2;
+
+      curveHalo.material.opacity = 0.18 + Math.sin(elapsed * 1.25) * 0.055;
+
+      stats.frame++;
+      renderer.info.reset();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

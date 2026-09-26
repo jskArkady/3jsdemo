@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>선형변환 공간 실험실</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;color:#e5f1f3;background:#09121e}*{box-sizing:border-box}body{margin:0}button,select,input{font:inherit;color:inherit;background:#172a3c;border:1px solid #476176;border-radius:6px;min-height:36px;padding:7px}button{cursor:pointer}button:hover{border-color:#6cf0d5}button[aria-pressed=true]{background:#285951}button:disabled{opacity:.4;cursor:default}:focus-visible{outline:2px solid #ffe298;outline-offset:3px}a{color:#8debd8}header{position:absolute;top:26px;left:30px;z-index:2;pointer-events:none}header a{pointer-events:auto;font-size:12px}h1{font-size:clamp(22px,2.4vw,34px);font-weight:500;margin:15px 0 8px;letter-spacing:-.05em}.eyebrow{color:#82a9bf;letter-spacing:.22em;font-size:10px;margin-top:22px}header p{color:#a9c1cf;font-size:12px;line-height:1.8}#stage{position:fixed;inset:0 370px 0 0}#stage canvas{display:block;width:100%;height:100%}#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}.axis-label{position:absolute;font:bold 12px ui-monospace,monospace;text-shadow:0 1px 5px #000;transform:translate(7px,-50%)}aside{position:absolute;right:0;top:0;bottom:0;width:370px;overflow:auto;padding:25px 23px;background:#0e1c2bef;border-left:1px solid #284154}h2{font-size:15px;margin:0 0 13px;font-weight:500}.section{padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid #2c4355}.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}label{font-size:12px;color:#c0d4dd}.matrix{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.matrix input{width:100%;text-align:center;font:15px ui-monospace,monospace}.muted{color:#a6bdcb;font-size:11px;line-height:1.7;margin:10px 0}.wide{width:100%}#progress{width:100%;accent-color:#67dfc8;padding:0}#input-error{font-size:12px;color:#ffb8b4;min-height:18px;margin:7px 0}#metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.metric{background:#142638;padding:12px;border-radius:7px}.metric span{font-size:10px;color:#a7c0ce;display:block}.metric strong{font:23px ui-monospace,monospace;color:#83efda;display:block;margin-top:6px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}.checks label{display:flex;align-items:center;gap:6px}.checks input{min-height:20px;accent-color:#73dfcb}#legend{position:absolute;left:28px;bottom:25px;z-index:2;max-width:calc(100% - 32px);background:#0c192cdd;border:1px solid #294154;border-radius:8px;padding:13px 16px;font-size:11px;line-height:1.9;color:#bbd2df}#fps{color:#7895a9}.ghost{color:#9caebc}.teal{color:#71edd8}.amber{color:#ffe298}.pink{color:#eaa8ee}#error{position:fixed;z-index:10;top:20%;left:10%;right:10%;background:#321d29;color:#ffe2e1;padding:24px;border:1px solid #c87986}#error[hidden]{display:none}#current{font:12px/1.7 ui-monospace,monospace;white-space:pre;margin:10px 0}summary{cursor:pointer;font-size:12px;color:#bbd2df}
+@media(max-width:720px){body{overflow:auto}#stage{position:relative;inset:auto;width:100%;height:53vh;min-height:330px}header{top:15px;left:18px}header p{display:none}.eyebrow{margin-top:12px;font-size:9px}h1{font-size:23px;margin:8px 0}aside{position:relative;width:100%;padding:20px;overflow:visible;border-left:0;border-top:1px solid #284154}#legend{left:12px;bottom:12px;padding:8px 10px;font-size:10px}#metrics{grid-template-columns:repeat(4,1fr)}.metric{padding:10px 6px}.metric strong{font-size:18px}}
+@media(min-width:721px) and (max-height:500px){header{left:15px;top:12px}header p,.eyebrow{display:none}h1{font-size:22px}aside{width:340px;padding:15px}#stage{right:340px}#legend{left:12px;bottom:12px;font-size:10px;padding:8px}}
+
+/* Experiment learning notes: scoped to avoid changing scene controls. */
+.knowledge { grid-column: 1 / -1; min-width: 0; width: 100%; margin: 0 0 16px; padding: 12px; border: 1px solid #496672; border-radius: 8px; background: #0b1c29; color: #dce9ee; }
+.knowledge > summary { cursor: pointer; color: #a2e8dc; font: 600 13px/1.7 system-ui, sans-serif; padding: 3px 0; }
+.knowledge > summary:focus-visible { outline: 2px solid #f0ce88; outline-offset: 4px; }
+.knowledge h3 { margin: 18px 0 7px; color: #e9d29e; font: 600 13px/1.6 system-ui, sans-serif; letter-spacing: normal; }
+.knowledge p, .knowledge li { color: #c5d6df; font: 12px/1.85 system-ui, sans-serif; text-align: left; overflow-wrap: anywhere; }
+.knowledge p { margin: 7px 0; }
+.knowledge ol { padding-left: 20px; margin: 7px 0; }
+.knowledge li { margin: 8px 0; padding-left: 2px; }
+.knowledge .knowledge-formula { white-space: pre-wrap; overflow-wrap: anywhere; padding: 10px; border-left: 2px solid #79cbbb; background: #152c39; font: 12px/1.9 ui-monospace, monospace; color: #e1f1ee; }
+.knowledge a { color: #a2e8dc; text-decoration: underline; text-underline-offset: 3px; }
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.183.0/build/three.module.js"}}</script></head>
+<body>
+<header><a href="../index.html">← 데모 갤러리</a><div class="eyebrow">MATHEMATICS / SPACE LAB 04</div><h1>선형변환 공간 실험실</h1><p>행렬의 세 열이 기저를 옮기면,<br>공간 전체가 함께 변합니다.</p></header>
+<div id="stage" role="img" aria-label="원본과 변환된 격자, 단위구와 단위 정육면체. 기저 x는 빨강, y는 초록, z는 파랑."><div id="labels"></div><div id="legend"><span class="ghost">회색 · 원본</span> / <span class="teal">청록 · 변환</span><br><span class="amber">금색 · 타원체 주축</span> / <span class="pink">분홍 · 대칭 고유축</span><br>x 빨강 · y 초록 · z 파랑 / 원점의 흰 점은 고정<br><span id="fps">FPS · 준비 중</span></div></div>
+<aside aria-label="변환 조작">
+<details class="knowledge" id="experiment-knowledge">
+<summary>실험 이해하기 · 원리와 관찰</summary>
+<h3>핵심 원리</h3><p>선형변환은 벡터의 덧셈과 상수배를 보존합니다. 따라서 세 기저 벡터가 어디로 이동하는지만 알면 공간의 모든 점이 어디로 가는지 정해집니다. 열벡터 규약에서는 행렬의 각 열이 변환된 x·y·z 기저입니다.</p>
+<h3>수식과 기호</h3><p class="knowledge-formula">y = Ax
+A(v+w) = Av+Aw · A(cv) = cAv
+부피 배율 = |det A|</p><p>A는 3×3 행렬, x·y는 변환 전후 좌표입니다. det는 방향 부호를 포함한 부피 배율, rank는 변환 뒤 남는 독립 방향의 수입니다. 특이값 σ는 단위구가 변한 타원체의 주축 반길이이며 모두 0 이상입니다.</p>
+<h3>직접 관찰하기</h3><ol><li>‘축별 확대’에서 격자·기저·단위구가 함께 변하는지 확인하세요. 직접 대각행렬 diag(2,1,1)을 적용하면 부피비는 2가 됩니다.</li><li>‘xy 평면 투영’에서 구가 납작해지고 det가 0, rank가 2가 되는지 확인하세요.</li><li>‘x축 반사’의 음수 det와 ‘대칭 결합’의 고유축을 비교하세요. 보간 슬라이더를 옮기며 중간 행렬도 관찰하세요.</li></ol>
+<h3>결과를 읽는 법</h3><p>고유벡터 v는 Av = λv를 만족하는 0이 아닌 벡터입니다. 같은 직선 위에 남지만 λ가 음수면 방향이 뒤집힙니다. 특이값은 길이 배율이고 고유값과 일반적으로 다릅니다. det가 0이면 3차원 부피를 잃는 방향이 있습니다.</p>
+<h3>모델의 한계</h3><p>이 데모의 고유축 표시는 대칭 행렬에서만 지원합니다. 원본과 목표 사이의 A(u)=(1−u)I+uA는 행렬 원소 보간으로, 회전 프리셋도 중간 과정은 순수 회전이 아닐 수 있습니다. 좌표와 배율은 무차원입니다.</p>
+<h3>더 알아보기</h3><p><a href="https://www.3blue1brown.com/lessons/linear-transformations/" target="_blank" rel="noopener noreferrer">3Blue1Brown · 선형변환과 행렬 · 새 탭</a></p>
+</details>
+
+<div class="section"><h2>01 / 목표 행렬 A</h2><label for="preset">프리셋</label><select id="preset" class="wide"><option value="stretch">축별 확대</option><option value="identity">항등</option><option value="shear">xy 전단</option><option value="rotation">z축 45° 회전</option><option value="reflection">x축 반사</option><option value="projection">xy 평면 투영</option><option value="symmetric">대칭 결합</option><option value="custom" disabled>직접 입력</option></select>
+<p class="muted">열벡터 y = Ax · 왼쪽→오른쪽: 열 1, 2, 3<br>각 열은 변환된 x / y / z 기저입니다. 위→아래: 행 1, 2, 3</p><div id="matrix" class="matrix"></div><button id="apply" class="wide">행렬 적용</button><p id="input-error" role="alert"></p><p class="muted">값 범위 −3…3 · 입력 중에는 장면 유지.<br>적용·프리셋 선택 시 u = 1에서 정지합니다.</p></div>
+<div class="section"><h2>02 / 원본에서 변환으로</h2><label for="progress">보간 u · <output id="u-value">1.000</output></label><input id="progress" type="range" min="0" max="1" step="0.001" value="1"><div class="row"><button id="play" aria-pressed="false">재생</button><button id="reset">초기화</button><label for="speed">배속</label><select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></div><p id="status" role="status" class="muted">정지 · 현재 행렬 표시</p><p class="muted">A(u) = (1−u)I + uA · 왕복 보간의 편도는 1×에서 4초입니다. 순수 회전 경로가 아니며, 중간에 차원이 줄 수 있습니다. 슬라이더 조작은 재생을 멈춥니다.</p></div>
+<div class="section"><h2>03 / 현재 공간의 수치</h2><div id="metrics"><div class="metric"><span>det · 유향 부피</span><strong id="det"></strong></div><div class="metric"><span>|det| · 부피비</span><strong id="volume"></strong></div><div class="metric"><span>rank · 차원</span><strong id="rank"></strong></div><div class="metric"><span>상태</span><strong id="orientation" style="font-size:14px"></strong></div></div><p id="singular" class="muted"></p><p id="eigen-info" class="muted"></p><details><summary>현재 A(u) · 허용오차와 모델</summary><pre id="current"></pre><p class="muted">모든 길이와 부피비는 무차원입니다. 구 반지름 1, 큐브 [0,1]³. rank는 σ &gt; 10⁻⁷ σmax인 개수(영행렬은 0). 고유축은 단위 방향이며 길이가 고유값은 아닙니다. 주축 반길이는 σ, σ=0의 축은 점으로 붕괴합니다. 특이값·고유값이 중복되면 축 방향은 유일하지 않습니다.</p></details></div>
+<div class="section"><h2>04 / 공간 레이어</h2><div class="checks"><label><input id="grid" type="checkbox" checked>격자</label><label><input id="sphere" type="checkbox" checked>단위구</label><label><input id="cube" type="checkbox" checked>큐브</label><label><input id="basis" type="checkbox" checked>기저</label><label><input id="eigen" type="checkbox">대칭 고유축</label><label><input id="principal" type="checkbox" checked>특이값 주축</label></div></div>
+<div><h2>05 / 카메라</h2><div class="row"><button id="oblique" aria-pressed="true">사선</button><button id="front" aria-pressed="false">정면 xy</button><button id="top" aria-pressed="false">상부 xz</button><button id="auto" aria-pressed="false">자동 회전</button></div><p class="muted">보기 변경 시 자동 회전 해제. 일시정지는 보간·자동 회전을 함께 멈춥니다. 초기화는 시작 프리셋과 모든 보기를 복원합니다.</p></div>
+</aside><div id="error" role="alert" hidden></div>
+<script id="math-core">
+// Row-major arrays, column vectors. No dependency on rendering or the DOM.
+const LinearMath=(()=>{
+const I=[1,0,0,0,1,0,0,0,1];
+const apply=(a,x)=>[0,1,2].map(i=>a[3*i]*x[0]+a[3*i+1]*x[1]+a[3*i+2]*x[2]);
+const det=a=>a[0]*(a[4]*a[8]-a[5]*a[7])-a[1]*(a[3]*a[8]-a[5]*a[6])+a[2]*(a[3]*a[7]-a[4]*a[6]);
+const ata=a=>Array.from({length:9},(_,n)=>{const i=Math.floor(n/3),j=n%3;return a[i]*a[j]+a[i+3]*a[j+3]+a[i+6]*a[j+6];});
+const mix=(a,u)=>a.map((v,i)=>(1-u)*I[i]+u*v);
+function jacobi(a){
+ const d=a.slice(),v=I.slice(),scale=Math.max(...d.map(Math.abs));
+ for(let iter=0;iter<64;iter++){
+  let p=0,q=1;for(const [i,j] of [[0,2],[1,2]])if(Math.abs(d[3*i+j])>Math.abs(d[3*p+q])){p=i;q=j;}
+  if(Math.abs(d[3*p+q])<=Number.EPSILON*8*scale)break;
+  const ap=d[3*p+p],aq=d[3*q+q],b=d[3*p+q];
+  const tau=(aq-ap)/(2*b),t=(tau>=0?1:-1)/(Math.abs(tau)+Math.hypot(1,tau)),c=1/Math.hypot(1,t),s=t*c;
+  d[3*p+p]=ap-t*b;d[3*q+q]=aq+t*b;d[3*p+q]=d[3*q+p]=0;
+  for(let k=0;k<3;k++)if(k!==p&&k!==q){const x=d[3*k+p],y=d[3*k+q];d[3*k+p]=d[3*p+k]=c*x-s*y;d[3*k+q]=d[3*q+k]=s*x+c*y;}
+  for(let k=0;k<3;k++){const x=v[3*k+p],y=v[3*k+q];v[3*k+p]=c*x-s*y;v[3*k+q]=s*x+c*y;}
+ }
+ const order=[0,1,2].sort((i,j)=>d[3*j+j]-d[3*i+i]);
+ return {values:order.map(i=>d[3*i+i]),vectors:order.map(i=>[v[i],v[i+3],v[i+6]])};
+}
+function analyze(a){
+ const scale=Math.max(...a.map(Math.abs)),normalized=scale?a.map(x=>x/scale):a.slice();
+ const gram=ata(normalized),eig=jacobi(gram),tol=64*Number.EPSILON*Math.max(...gram.map(Math.abs));
+ const sigma=eig.values.map(x=>{if(x < -tol)throw Error('음의 AᵀA 고유값: 계산을 확인하세요.');return Math.sqrt(Math.max(0,x))*scale;});
+ const threshold=sigma[0]*1e-7,rank=sigma.filter(s=>s>threshold).length;
+ const symmetric=[1,2,5].every(i=>Math.abs(a[i]-a[3*(i%3)+Math.floor(i/3)])<=1e-12*scale);
+ const eigen=symmetric?jacobi(normalized):null;if(eigen)eigen.values=eigen.values.map(x=>x*scale);
+ const normalizedDet=det(normalized),detSign=Math.sign(normalizedDet),logDet=normalizedDet?Math.log10(Math.abs(normalizedDet))+3*Math.log10(scale):-Infinity;
+ const repeated=values=>values.some((x,i)=>i>0&&Math.abs(x-values[i-1])<=1e-6*Math.max(...values.map(Math.abs)));
+ return {det:det(a),detSign,logDet,sigma,rank,threshold,symmetric,eigen,repeatedSigma:repeated(sigma),repeatedEigen:eigen?repeated(eigen.values):false,principal:eig.vectors.map(v=>apply(a,v))};
+}
+function parse(values){if(values.length!==9||values.some(v=>String(v).trim()===''||!Number.isFinite(Number(v))||Math.abs(Number(v))>3))throw Error('9개 칸 모두에 −3~3 사이의 유한수를 입력하세요.');return values.map(Number);}
+const c=Math.SQRT1_2;
+const presets={identity:I,stretch:[1.8,0,0,0,.7,0,0,0,1.2],shear:[1,1.2,0,0,1,0,0,0,1],rotation:[c,-c,0,c,c,0,0,0,1],reflection:[-1,0,0,0,1,0,0,0,1],projection:[1,0,0,0,1,0,0,0,0],symmetric:[1.4,.6,0,.6,1.4,0,0,0,.7]};
+return {I,apply,det,ata,mix,jacobi,analyze,parse,presets};
+})();
+</script>
+<script type="module">
+const $=id=>document.getElementById(id),error=$('error');
+let cleanup=()=>{};
+try {
+ const THREE=await import('three'),M=LinearMath;
+ const controller=new AbortController(),on=(el,type,fn)=>el.addEventListener(type,fn,{signal:controller.signal});
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));$('stage').prepend(renderer.domElement);
+ const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,.05,200),geometries=new Set(),materials=new Set();
+ const fmt=n=>n===0?'0':Math.abs(n)<.001?n.toExponential(2):Number(n.toFixed(3)).toString();
+ const fmtDet=(a,absolute=false)=>a.det!==0?fmt(absolute?Math.abs(a.det):a.det):a.detSign===0?'0':`${!absolute&&a.detSign<0?'-':''}${(10**(a.logDet-Math.floor(a.logDet))).toFixed(2)}e${Math.floor(a.logDet)}`;
+ let target=M.presets.stretch.slice(),u=1,current=M.mix(target,u),analysis=M.analyze(current),playing=false,direction=-1,auto=false,view='oblique',angle=.72,speed=1,disposed=false,suspended=false,last=0,raf=0,fpsElapsed=0,frames=0;
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const inputs=Array.from({length:9},(_,i)=>{const input=document.createElement('input');input.type='number';input.step='any';input.min=-3;input.max=3;input.setAttribute('aria-label',`${Math.floor(i/3)+1}행 ${i%3+1}열`);$('matrix').append(input);return input;});
+ function line(points,color,opacity=1){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flat(),3));geometries.add(geometry);const material=new THREE.LineBasicMaterial({color,transparent:opacity<1,opacity,depthTest:true});materials.add(material);const obj=new THREE.LineSegments(geometry,material);scene.add(obj);obj.frustumCulled=false;return obj;}
+ const shapes={};function shape(name,points){shapes[name]={source:points,ghost:line(points,0x6b8096,.27),result:line(points,0x64e5cf,name==='grid'?.25:.85)};}
+ const grid=[];for(let k=-4;k<=4;k++){const x=k/2;grid.push([-2,0,x],[2,0,x],[x,0,-2],[x,0,2]);}shape('grid',grid);
+ const sphere=[];const p=(lat,lon)=>[Math.cos(lat)*Math.cos(lon),Math.sin(lat),Math.cos(lat)*Math.sin(lon)];
+ for(let j=1;j<12;j++){const lat=-Math.PI/2+j*Math.PI/12;for(let k=0;k<96;k++)sphere.push(p(lat,k*Math.PI/48),p(lat,(k+1)*Math.PI/48));}
+ for(let j=0;j<12;j++)for(let k=0;k<96;k++)sphere.push(p(k*Math.PI/48,j*Math.PI/6),p((k+1)*Math.PI/48,j*Math.PI/6));shape('sphere',sphere);
+ const cube=[];for(let axis=0;axis<3;axis++)for(let i=0;i<4;i++){const a=[0,0,0],b=[0,0,0];a[(axis+1)%3]=b[(axis+1)%3]=i%2;a[(axis+2)%3]=b[(axis+2)%3]=Math.floor(i/2);b[axis]=1;cube.push(a,b);}shape('cube',cube);
+ const originGeometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute([0,0,0],3));geometries.add(originGeometry);const originMaterial=new THREE.PointsMaterial({color:0xffffff,size:5,sizeAttenuation:false});materials.add(originMaterial);scene.add(new THREE.Points(originGeometry,originMaterial));
+ const basis=[0xff8794,0x92f4a9,0x89b5ff].map((color,i)=>{const v=[0,0,0];v[i]=1;const label=document.createElement('span');label.className='axis-label';label.style.color='#'+color.toString(16);label.textContent=['Ax','Ay','Az'][i];$('labels').append(label);return {v,label,ghost:line([[0,0,0],v],color,.35),result:line([[0,0,0],v],color)};});
+ const principal=line(Array.from({length:6},()=>[0,0,0]),0xffd88b),eigen=line(Array.from({length:6},()=>[0,0,0]),0xe7a3f0,.8);
+ function updateLine(object,points){const array=object.geometry.attributes.position.array;points.forEach((p,i)=>array.set(p,3*i));object.geometry.attributes.position.needsUpdate=true;}
+ function sync(){ $('play').textContent=playing?'일시정지':'재생';$('play').setAttribute('aria-pressed',String(playing));$('auto').setAttribute('aria-pressed',String(auto));$('status').textContent=playing?'재생 중 · 보간과 자동 카메라 진행':'정지 · 현재 행렬 표시';for(const mode of ['front','top','oblique'])$(mode).setAttribute('aria-pressed',String(view===mode)); }
+ function layers(){for(const name of ['grid','sphere','cube'])shapes[name].ghost.visible=shapes[name].result.visible=$(name).checked;for(const b of basis)b.ghost.visible=b.result.visible=$('basis').checked;principal.visible=$('principal').checked;eigen.visible=$('eigen').checked&&analysis.symmetric;}
+ function update(){current=M.mix(target,u);analysis=M.analyze(current);for(const shape of Object.values(shapes))updateLine(shape.result,shape.source.map(p=>M.apply(current,p)));for(const b of basis)updateLine(b.result,[[0,0,0],M.apply(current,b.v)]);
+ updateLine(principal,analysis.principal.flatMap(p=>[p.map(v=>-v),p]));if(analysis.eigen)updateLine(eigen,analysis.eigen.vectors.flatMap(p=>[p.map(v=>-1.25*v),p.map(v=>1.25*v)]));
+ $('eigen').disabled=!analysis.symmetric;$('det').textContent=fmtDet(analysis);$('volume').textContent=fmtDet(analysis,true);$('rank').textContent=analysis.rank;$('orientation').textContent=analysis.rank<3?'차원 축소':analysis.detSign<0?'방향 반전':'방향 유지';$('singular').textContent=`특이값 σ = ${analysis.sigma.map(fmt).join(' / ')}${analysis.repeatedSigma?' · 중복 주축 방향은 유일하지 않음':''}`;
+ $('eigen-info').textContent=analysis.symmetric?`대칭 고유값 λ = ${analysis.eigen.values.map(fmt).join(' / ')}${analysis.repeatedEigen?' · 중복 고유축 방향은 유일하지 않음':''}`:'이 보기의 고유벡터 표시는 대칭 행렬에서 지원합니다.';
+ $('current').textContent=[0,1,2].map(i=>current.slice(3*i,3*i+3).map(x=>fmt(x).padStart(8)).join(' ')).join('\n');$('progress').value=u;$('u-value').value=u.toFixed(3);layers(); }
+ function writeInputs(){inputs.forEach((input,i)=>input.value=target[i]);}
+ function commit(a){target=a.slice();u=1;direction=-1;playing=false;writeInputs();$('input-error').textContent='';update();sync();}
+ on($('apply'),'click',()=>{try{const a=M.parse(inputs.map(input=>input.value));$('preset').value='custom';commit(a);}catch(e){$('input-error').textContent=e.message;}});
+ on($('preset'),'change',e=>commit(M.presets[e.target.value]));on($('progress'),'input',e=>{u=Number(e.target.value);playing=false;direction=u>=1?-1:1;update();sync();});
+ on($('play'),'click',()=>{playing=!playing;last=0;sync();});on($('speed'),'change',e=>speed=Number(e.target.value));
+ on($('auto'),'click',()=>{auto=!auto;sync();});for(const mode of ['front','top','oblique'])on($(mode),'click',()=>{view=mode;auto=false;angle=.72;sync();});
+ for(const id of ['grid','sphere','cube','basis','eigen','principal'])on($(id),'change',layers);
+ on($('reset'),'click',()=>{auto=false;view='oblique';angle=.72;speed=1;$('speed').value='1';$('preset').value='stretch';for(const id of ['grid','sphere','cube','basis','principal'])$(id).checked=true;$('eigen').checked=false;commit(M.presets.stretch);});
+ on(reduced,'change',()=>{if(reduced.matches){playing=false;auto=false;sync();}});
+ function resize(){const rect=$('stage').getBoundingClientRect();renderer.setSize(rect.width,rect.height);camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe($('stage'));
+ function pose(){// Keep a fixed scale throughout interpolation; include transformed grid corners.
+ const radius=Math.max(2.8,...[[-2,0,-2],[-2,0,2],[2,0,-2],[2,0,2],[1,1,1]].map(p=>Math.hypot(...M.apply(target,p))),Math.hypot(...target));
+ const distance=radius/Math.sin(camera.fov*Math.PI/360)/Math.min(1,camera.aspect)*1.12;
+ camera.far=distance+radius*3+10;camera.updateProjectionMatrix();
+ camera.up.set(0,1,0);if(view==='front'&&!auto)camera.position.set(0,0,distance);else if(view==='top'&&!auto){camera.position.set(0,distance,0);camera.up.set(0,0,-1);}else camera.position.set(Math.sin(angle)*distance*.83,distance*.55,Math.cos(angle)*distance*.83);camera.lookAt(0,0,0);camera.updateMatrixWorld();
+ const rect=$('stage').getBoundingClientRect();for(const b of basis){b.label.hidden=!$('basis').checked;const p=new THREE.Vector3(...M.apply(current,b.v)).project(camera);b.label.style.left=(p.x*.5+.5)*rect.width+'px';b.label.style.top=(-p.y*.5+.5)*rect.height+'px';} }
+ function animate(now){if(disposed||suspended)return;raf=requestAnimationFrame(animate);const elapsed=last?Math.max(0,(now-last)/1000):0,dt=Math.min(.05,elapsed);last=now;if(document.hidden)return;
+ if(playing){u+=direction*dt*speed/4;if(u>=1){u=2-u;direction=-1;}if(u<=0){u=-u;direction=1;}if(auto)angle+=dt*.2;update();}pose();renderer.render(scene,camera);fpsElapsed+=elapsed;frames++;if(fpsElapsed>=1){$('fps').textContent=`FPS · ${Math.round(frames/fpsElapsed)} / ${playing?'재생':'정지'}`;fpsElapsed=0;frames=0;} }
+ function dispose(){if(disposed)return;disposed=true;cancelAnimationFrame(raf);controller.abort();observer.disconnect();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();renderer.domElement.remove();$('labels').replaceChildren();}
+ cleanup=dispose;on(document,'visibilitychange',()=>{last=0;fpsElapsed=0;frames=0;});on(window,'pagehide',event=>{if(event.persisted){suspended=true;cancelAnimationFrame(raf);last=0;}else dispose();});on(window,'pageshow',event=>{if(event.persisted&&!disposed){suspended=false;last=0;cancelAnimationFrame(raf);raf=requestAnimationFrame(animate);}});
+ on(renderer.domElement,'webglcontextlost',event=>{event.preventDefault();error.hidden=false;error.textContent='WebGL 연결이 중단되었습니다. 새로고침해 다시 열어 주세요.';dispose();});
+ // Read-only snapshot plus explicit cleanup used by the local verification harness.
+ window.linearLab={getState:()=>({u,target:target.slice(),current:current.slice(),analysis,playing,auto,view,angle,disposed,suspended,camera:camera.position.toArray(),far:camera.far,basis: basis.map(b=>Array.from(b.result.geometry.attributes.position.array)),visible:{eigen:eigen.visible,principal:principal.visible},finite:[...geometries].every(g=>Array.from(g.attributes.position.array).every(Number.isFinite))}),dispose};
+ writeInputs();resize();update();sync();raf=requestAnimationFrame(animate);
+}catch(e){cleanup();error.hidden=false;error.textContent='장면을 시작하지 못했습니다. 인터넷/CDN 연결과 WebGL 지원을 확인한 뒤 새로고침해 주세요. '+e.message;console.error(e);}
+</script></body></html>

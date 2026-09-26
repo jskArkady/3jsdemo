@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ancient Cliff Sanctuary</title>
+  <link rel="icon" href="data:,">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #b5d4e3;
+      user-select: none;
+    }
+    #stage {
+      position: fixed;
+      inset: 0;
+      background: #b5d4e3;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #fps-stats {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.65);
+      border-radius: 4px;
+      color: #00ff66;
+      font-family: monospace;
+      font-size: 11px;
+      pointer-events: none;
+      z-index: 99999;
+      line-height: 1.2;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; --accent: #d9c59a; }
+    .scene-header { position: fixed; top: 28px; left: 32px; color: #edf0ee; pointer-events: none; max-width: min(560px, calc(100vw - 64px)); text-shadow: 0 2px 10px #000; }
+    .scene-header { isolation: isolate; }
+    .scene-header::before { content: ""; position: absolute; inset: -10px -12px; z-index: -1; border-radius: 8px; background: linear-gradient(110deg, #0b1922df, #0b19228c); }
+    .scene-header a { display: inline-block; margin-bottom: 22px; pointer-events: auto; color: var(--accent); text-decoration: none; font-size: 12px; }
+    .eyebrow { font: 10px/1.8 ui-monospace, monospace; letter-spacing: .2em; color: var(--accent); }
+    h1 { margin: 8px 0; font-size: clamp(23px, 3vw, 36px); font-weight: 450; letter-spacing: -.04em; }
+    .scene-header p { margin: 0; font-size: 12px; line-height: 1.8; color: #d0dadb; }
+    #fps-stats { top: 28px; right: 28px; color: #b8cecd; background: #101b22d9; font: 10px/1.8 ui-monospace, monospace; max-width: calc(100vw - 32px); z-index: 1; }
+    .scene-footer { position: fixed; bottom: 24px; left: 32px; right: 32px; display: flex; justify-content: flex-end; pointer-events: none; }
+    .controls { pointer-events: auto; padding: 14px 16px; border: 1px solid #a7bbbd44; background: #101b22e8; border-radius: 8px; backdrop-filter: blur(14px); color: #dfebe9; max-width: 100%; }
+    .control-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    button, select { font: 12px system-ui; padding: 9px 12px; min-height: 38px; border: 1px solid #647d8266; border-radius: 4px; background: #1b2b33; color: #dfebe9; cursor: pointer; }
+    button:hover, select:hover { border-color: var(--accent); }
+    button[aria-pressed="true"] { background: #345052; border-color: var(--accent); }
+    label { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #bccdcc; }
+    input { width: 85px; accent-color: var(--accent); }
+    output { min-width: 28px; font: 11px ui-monospace, monospace; }
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    #scene-status { margin: 10px 0 0; color: #b4c7c6; font-size: 11px; line-height: 1.6; }
+    @media (max-width: 650px) {
+      .scene-header { top: 18px; left: 20px; max-width: calc(100vw - 40px); }
+      .scene-header a { margin-bottom: 36px; }
+      .scene-header p { font-size: 11px; max-width: 290px; }
+      #fps-stats { top: 48px; left: 20px; right: auto; font-size: 9px; padding: 4px 7px; }
+      .scene-footer { left: 12px; right: 12px; bottom: 12px; }
+      .controls { width: 100%; padding: 12px; }
+      .control-row { gap: 8px; }
+      button, select { padding: 8px; font-size: 11px; }
+    }
+    @media (max-height: 500px) {
+      .scene-header { top: 10px; left: 18px; }
+      .scene-header a { margin-bottom: 4px; }
+      h1 { font-size: 21px; }
+      .eyebrow, .scene-header p { display: none; }
+      #fps-stats { top: 12px; left: auto; right: 12px; }
+      .scene-footer { bottom: 10px; }
+      .controls { padding: 9px; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="fps-stats" aria-label="프레임 속도">FPS · 측정 준비 중</div>
+  <header class="scene-header">
+    <a href="../index.html">← 갤러리로</a>
+    <div class="eyebrow">THREE.JS / CINEMATIC EXPLORATION</div>
+    <h1>Ancient Cliff Sanctuary</h1>
+    <p>협곡의 순례길과 고대 성소, 거대한 수호자의 느린 발걸음.</p>
+  </header>
+  <footer class="scene-footer">
+    <section class="controls" aria-label="장면 조작">
+      <div class="control-row">
+        <button id="pause" type="button" aria-pressed="false">일시정지</button>
+        <label for="speed">배속 <select id="speed"><option value="0.25">0.25×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+        <button id="auto" type="button" aria-pressed="true">자동 카메라 켜짐</button>
+        <label for="exposure">노출 <input id="exposure" type="range" min="0.5" max="1.8" step="0.01" value="1.08"><output id="exposure-value" for="exposure">1.08</output></label>
+      </div>
+      <p id="scene-status" role="status" aria-live="polite"></p>
+    </section>
+  </footer>
+
+
+  <script type="module">
+    import * as THREE from "three";
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
+    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+    import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+    import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+    import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+
+    const container = document.getElementById("stage");
+
+    // Renderer Setup
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+      precision: "highp",
+      alpha: false,
+      stencil: false,
+      depth: true,
+      logarithmicDepthBuffer: true
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xaec3d0);
+    scene.fog = new THREE.FogExp2(0x94b1c1, 0.0045);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
+
+    const clock = new THREE.Clock();
+    const cameraTarget = new THREE.Vector3(16, 17, -60);
+    const cameraTargetLag = new THREE.Vector3(16, 17, -60);
+    const dummy = new THREE.Object3D();
+    let animationId = 0;
+
+    // COMMON CAMERA + FPS PASS
+
+    // FPS Telemetry State
+    let fpsWarmupEnd = performance.now() + 1000;
+    let fpsMin = Infinity;
+    let fpsMax = -Infinity;
+    let fpsAvg = 0;
+    let fpsAccumulatedFrames = 0;
+    let fpsAccumulatedTime = 0;
+    let lastFpsUpdateTime = 0;
+    let lastFrameTime = 0;
+
+    function fpsResetState() {
+      fpsWarmupEnd = performance.now() + 1000;
+      fpsMin = Infinity;
+      fpsMax = -Infinity;
+      fpsAvg = 0;
+      fpsAccumulatedFrames = 0;
+      fpsAccumulatedTime = 0;
+      lastFpsUpdateTime = performance.now();
+    }
+
+    function formatFps(value) { return value < 10 ? value.toFixed(1) : String(Math.round(value)); }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        fpsResetState();
+        clock.getDelta();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    // Reduced Motion Awareness
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const speedMultiplier = prefersReducedMotion ? 0.05 : 1.0;
+
+    let paused = false;
+    let playbackSpeed = 1;
+    let autoCamera = !prefersReducedMotion;
+    let simulationTime = 0;
+    let cameraTime = 0;
+    let cameraInitialized = false;
+    const uiEvents = new AbortController();
+    const pauseButton = document.getElementById("pause");
+    const autoButton = document.getElementById("auto");
+    function syncControls() {
+      pauseButton.textContent = paused ? "재생" : "일시정지";
+      pauseButton.setAttribute("aria-pressed", String(paused));
+      autoButton.textContent = autoCamera ? "자동 카메라 켜짐" : "자동 카메라 꺼짐";
+      autoButton.setAttribute("aria-pressed", String(autoCamera));
+      document.getElementById("scene-status").textContent =
+        `${paused ? "일시정지" : "재생 중"} · ${playbackSpeed}× · ${autoCamera ? "자동 카메라" : "카메라 고정"}${prefersReducedMotion ? " · 동작 줄이기 적용" : ""}`;
+    }
+    pauseButton.addEventListener("click", () => { paused = !paused; syncControls(); }, { signal: uiEvents.signal });
+    autoButton.addEventListener("click", () => { autoCamera = !autoCamera; syncControls(); }, { signal: uiEvents.signal });
+    document.getElementById("speed").addEventListener("change", (event) => {
+      playbackSpeed = Number(event.target.value); syncControls();
+    }, { signal: uiEvents.signal });
+    document.getElementById("exposure").addEventListener("input", (event) => {
+      renderer.toneMappingExposure = Number(event.target.value);
+      document.getElementById("exposure-value").value = renderer.toneMappingExposure.toFixed(2);
+    }, { signal: uiEvents.signal });
+    syncControls();
+
+
+    // Procedural Noise and Texture Generation
+    function hash2(x, y) {
+      return THREE.MathUtils.euclideanModulo(Math.sin(x * 127.1 + y * 311.7) * 43758.5453123, 1);
+    }
+
+    function valueNoise(x, y) {
+      const ix = Math.floor(x);
+      const iy = Math.floor(y);
+      const fx = x - ix;
+      const fy = y - iy;
+      const ux = fx * fx * (3 - 2 * fx);
+      const uy = fy * fy * (3 - 2 * fy);
+      const a = hash2(ix, iy);
+      const b = hash2(ix + 1, iy);
+      const c = hash2(ix, iy + 1);
+      const d = hash2(ix + 1, iy + 1);
+      return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a, b, ux), THREE.MathUtils.lerp(c, d, ux), uy);
+    }
+
+    function fbm(x, y, octaves = 3) {
+      let value = 0.0;
+      let amplitude = 0.5;
+      let frequency = 1.0;
+      for (let i = 0; i < octaves; i++) {
+        value += amplitude * valueNoise(x * frequency, y * frequency);
+        frequency *= 2.0;
+        amplitude *= 0.5;
+      }
+      return value;
+    }
+
+    // Independent albedo, relief and roughness maps: pigment is never used as height.
+    // Four-way noise blending makes the weathering tile continuously in both axes.
+    function createWeatheredSurface(vegetation = false) {
+      const size = 512;
+      const canvases = Array.from({ length: 3 }, () => {
+        const c = document.createElement("canvas"); c.width = c.height = size; return c;
+      });
+      const contexts = canvases.map(c => c.getContext("2d"));
+      const images = contexts.map(c => c.createImageData(size, size));
+      function tileNoise(u, v, scale) {
+        const x = u * scale, y = v * scale;
+        return THREE.MathUtils.lerp(
+          THREE.MathUtils.lerp(fbm(x, y, 3), fbm(x - scale, y, 3), u),
+          THREE.MathUtils.lerp(fbm(x, y - scale, 3), fbm(x - scale, y - scale, 3), u), v);
+      }
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const u = x / size, v = y / size;
+        const broad = tileNoise(u, v, 6), grain = tileNoise(u, v, 46);
+        const strata = Math.sin(v * Math.PI * 32 + Math.sin(u * Math.PI * 4) * 1.8);
+        const fissure = Math.pow(Math.max(0, strata), 22) * (0.3 + broad);
+        const pits = Math.max(0, 0.30 - grain) * 2.8;
+        const damp = THREE.MathUtils.smoothstep(broad, 0.47, 0.65);
+        const shade = 0.7 + grain * 0.50 - fissure * 0.13 - damp * 0.13;
+        const base = vegetation ? [104, 119, 70] : [188, 180, 157];
+        const i = (x + y * size) * 4;
+        for (let channel = 0; channel < 3; channel++) {
+          images[0].data[i + channel] = base[channel] * shade + (channel === 1 ? damp * 7 : 0);
+          images[1].data[i + channel] = 140 + grain * 72 - fissure * 75 - pits * 40;
+          images[2].data[i + channel] = 222 + grain * 28 - damp * 42;
+        }
+        images.forEach(image => { image.data[i + 3] = 255; });
+      }
+      return canvases.map((canvas, i) => {
+        contexts[i].putImageData(images[i], 0, 0);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = i === 0 ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.setScalar(vegetation ? 6 : 4);
+        texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+        return texture;
+      });
+    }
+    const [stoneTexture, stoneHeight, stoneRoughness] = createWeatheredSurface();
+    const [grassTexture, grassHeight, grassRoughness] = createWeatheredSurface(true);
+
+    // GRAPHICS ENHANCEMENT LOOP 1: LIGHTING + MATERIALS
+
+    // Materials
+    const stoneMaterial = new THREE.MeshStandardMaterial({
+      map: stoneTexture,
+      bumpMap: stoneHeight,
+      bumpScale: 0.19,
+      roughnessMap: stoneRoughness,
+      roughness: 0.9,
+      metalness: 0.05
+    });
+
+    // World-scale projection keeps mineral grain and relief consistent across tall
+    // cliff blocks and thin ledges, including differently scaled instances.
+    const cliffMaterial = stoneMaterial.clone();
+    cliffMaterial.bumpScale = 0.15;
+    cliffMaterial.onBeforeCompile = shader => {
+      shader.vertexShader = `varying vec3 vCliffPosition;
+        varying vec3 vCliffNormal;
+` + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>", `
+        #include <project_vertex>
+        vec4 cliffWorld = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          cliffWorld = instanceMatrix * cliffWorld;
+        #endif
+        vCliffPosition = (modelMatrix * cliffWorld).xyz;
+        vCliffNormal = inverseTransformDirection(transformedNormal, viewMatrix);
+      `);
+      shader.fragmentShader = `
+        varying vec3 vCliffPosition;
+        varying vec3 vCliffNormal;
+        vec4 cliffSample(sampler2D sourceMap, vec3 worldPosition) {
+          vec3 weights = pow(abs(normalize(vCliffNormal)), vec3(4.0));
+          weights /= max(dot(weights, vec3(1.0)), 0.0001);
+          vec3 p = worldPosition * 0.125;
+          return texture2D(sourceMap, p.zy) * weights.x
+               + texture2D(sourceMap, p.xz) * weights.y
+               + texture2D(sourceMap, p.xy) * weights.z;
+        }
+      ` + shader.fragmentShader;
+      shader.fragmentShader = shader.fragmentShader.replace("#include <map_fragment>",
+        THREE.ShaderChunk.map_fragment.replace("texture2D( map, vMapUv )", "cliffSample(map, vCliffPosition)"));
+      shader.fragmentShader = shader.fragmentShader.replace("#include <roughnessmap_fragment>",
+        THREE.ShaderChunk.roughnessmap_fragment.replace("texture2D( roughnessMap, vRoughnessMapUv )", "cliffSample(roughnessMap, vCliffPosition)"));
+      // Preserve Three's surface-gradient normal perturbation; only its height
+      // samples change to the same world-space projection used by albedo.
+      const bumpChunk = THREE.ShaderChunk.bumpmap_pars_fragment.replace(
+        /vec2 dHdxy_fwd\(\) \{[\s\S]*?\n\t\}/,
+        `vec2 dHdxy_fwd() {
+          float centerHeight = cliffSample(bumpMap, vCliffPosition).x;
+          float dx = cliffSample(bumpMap, vCliffPosition + dFdx(vCliffPosition)).x - centerHeight;
+          float dy = cliffSample(bumpMap, vCliffPosition + dFdy(vCliffPosition)).x - centerHeight;
+          return bumpScale * vec2(dx, dy);
+        }`);
+      shader.fragmentShader = shader.fragmentShader.replace("#include <bumpmap_pars_fragment>", bumpChunk);
+    };
+    cliffMaterial.customProgramCacheKey = () => "cliff-world-triplanar-v1";
+
+    const mountainMaterial = new THREE.MeshStandardMaterial({
+      map: stoneTexture,
+      color: 0x8fa3b3,
+      bumpMap: stoneHeight,
+      bumpScale: 0.03,
+      roughnessMap: stoneRoughness,
+      roughness: 0.95,
+      metalness: 0.0
+    });
+
+    const bridgeStoneMaterial = new THREE.MeshStandardMaterial({
+      map: stoneTexture,
+      bumpMap: stoneHeight,
+      bumpScale: 0.12,
+      roughnessMap: stoneRoughness,
+      roughness: 0.82,
+      metalness: 0.08
+    });
+
+    const colossusArmorMaterial = new THREE.MeshStandardMaterial({
+      map: stoneTexture,
+      color: 0x817d6d,
+      bumpMap: stoneHeight,
+      bumpScale: 0.025,
+      roughnessMap: stoneRoughness,
+      roughness: 0.94,
+      metalness: 0.08
+    });
+
+    const grassTerrainMaterial = new THREE.MeshStandardMaterial({
+      map: grassTexture,
+      bumpMap: grassHeight,
+      bumpScale: 0.01,
+      roughnessMap: grassRoughness,
+      roughness: 0.95,
+      metalness: 0.0
+    });
+
+    const grassMaterial = new THREE.MeshStandardMaterial({
+      map: grassTexture,
+      roughness: 0.95,
+      side: THREE.DoubleSide
+    });
+
+    // Custom shader modifiers for grass wind
+    grassMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.time = { value: 0 };
+      shader.vertexShader = `
+        uniform float time;
+      ` + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        `
+          #include <begin_vertex>
+          float windTime = time * 2.0;
+          float wave = sin(windTime + position.x * 0.8 + position.z * 0.8) * 0.16;
+          wave += cos(windTime * 1.5 + position.x * 1.2 - position.z * 0.9) * 0.06;
+          float h = position.y;
+          transformed.x += wave * h * h;
+          transformed.z += wave * 0.5 * h * h;
+        `
+      );
+      grassMaterial.userData.shader = shader;
+    };
+
+    // Lights
+    const ambientLight = new THREE.HemisphereLight(0xa6cde8, 0x34372e, 0.92);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffd6a0, 3.15);
+    dirLight.position.set(-45, 66, 38);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.bias = -0.00015;
+    dirLight.shadow.normalBias = 0.12;
+    dirLight.shadow.radius = 14;
+    dirLight.shadow.blurSamples = 32;
+    dirLight.shadow.camera.near = 15;
+    dirLight.shadow.camera.far = 300;
+    
+    const d = 110;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x8eb6d2, 0.42);
+    fillLight.position.set(25, 25, -110);
+    scene.add(fillLight);
+
+    // Soft, independently controlled strata replace opaque flat haze slabs.
+    const mistCanvas = document.createElement("canvas");
+    mistCanvas.width = mistCanvas.height = 256;
+    const mistContext = mistCanvas.getContext("2d");
+    const mistImage = mistContext.createImageData(256, 256);
+    for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
+      const nx = (x - 128) / 128, ny = (y - 128) / 128;
+      const edge = Math.max(0, 1 - nx * nx - ny * ny);
+      const i = (x + y * 256) * 4;
+      mistImage.data[i] = mistImage.data[i + 1] = mistImage.data[i + 2] = 255;
+      mistImage.data[i + 3] = Math.pow(edge, 1.8) * (0.45 + fbm(x * 0.025, y * 0.025, 3)) * 220;
+    }
+    mistContext.putImageData(mistImage, 0, 0);
+    const mistTexture = new THREE.CanvasTexture(mistCanvas);
+    mistTexture.colorSpace = THREE.SRGBColorSpace;
+    const mistLayers = [];
+    for (let i = 0; i < 6; i++) {
+      const layer = new THREE.Mesh(new THREE.PlaneGeometry(205, 120), new THREE.MeshBasicMaterial({
+        map: mistTexture, color: i < 3 ? 0x94b6c6 : 0xb9cdd4,
+        transparent: true, opacity: i < 3 ? 0.38 : 0.14, depthWrite: false, side: THREE.DoubleSide
+      }));
+      layer.rotation.x = -Math.PI / 2 + (i > 2 ? 0.34 : 0);
+      layer.position.set(0, -38 + i * 8, -70 - i * 12);
+      layer.userData.baseX = layer.position.x;
+      scene.add(layer); mistLayers.push(layer);
+    }
+
+    // Deep Canyon Floor (fallback visual ground)
+    const canyonFloorGeo = new THREE.PlaneGeometry(500, 500);
+    canyonFloorGeo.rotateX(-Math.PI / 2);
+    const canyonFloorMat = new THREE.MeshStandardMaterial({
+      color: 0x768f9e,
+      roughness: 0.95,
+      metalness: 0.1
+    });
+    const canyonFloor = new THREE.Mesh(canyonFloorGeo, canyonFloorMat);
+    canyonFloor.position.y = -65;
+    canyonFloor.receiveShadow = true;
+    scene.add(canyonFloor);
+
+    // Foreground Grass Cliff
+    function getTerrainHeight(x, z) {
+      let y = valueNoise(x * 0.05, z * 0.05) * 7.5 - 2.5;
+      if (z < -10) {
+        y += (z + 10) * 0.8;
+      }
+      if (x < -22) {
+        y += (x + 22) * 1.4;
+      }
+      if (x > 18) {
+        y -= (x - 18) * 1.4;
+      }
+      return y;
+    }
+
+    const foregroundGeo = new THREE.PlaneGeometry(60, 60, 128, 128);
+    foregroundGeo.rotateX(-Math.PI / 2);
+    const pos = foregroundGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const px = pos.getX(i);
+      const pz = pos.getZ(i);
+      pos.setY(i, getTerrainHeight(px, pz));
+    }
+    foregroundGeo.computeVertexNormals();
+
+    const foregroundTerrain = new THREE.Mesh(foregroundGeo, grassTerrainMaterial);
+    foregroundTerrain.position.set(-10, 0, 15);
+    foregroundTerrain.receiveShadow = true;
+    foregroundTerrain.castShadow = true;
+    scene.add(foregroundTerrain);
+
+    // Sculpted closed surfaces: continuous coordinate noise keeps UV seams together.
+    function organicGeometry(width, height, depth, fullness = 0.85, erosion = 0.045) {
+      const geometry = new THREE.SphereGeometry(1, 32, 20);
+      const positions = geometry.attributes.position;
+      const shape = value => Math.sign(value) * Math.pow(Math.abs(value), fullness);
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
+        const relief = 1 + erosion * (Math.sin(x * 5 + y * 3) * Math.cos(z * 6 - y * 2)
+          + 0.35 * Math.sin(z * 11 + x * 7));
+        positions.setXYZ(i, shape(x) * width * 0.5 * relief,
+          shape(y) * height * 0.5 * relief, shape(z) * depth * 0.5 * relief);
+      }
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    // Curved, tapered masses for limbs, horns and weathered stone folds.
+    function curvedTaperGeometry(top, bottom, height, bend = 0, bulge = 0) {
+      const geometry = new THREE.CylinderGeometry(top, bottom, height, 24, 18);
+      const positions = geometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
+        const t = (height * 0.5 - y) / height;
+        const swell = 1 + Math.sin(t * Math.PI) * bulge;
+        positions.setXYZ(i, x * swell, y,
+          z * swell + Math.sin(t * Math.PI) * bend);
+      }
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    // Modular Cliffs (Instanced Canyon Walls with much higher subdivisions and fbm displacement)
+    const cliffBoxGeo = new THREE.BoxGeometry(16, 65, 22, 32, 64, 32);
+    const cliffPos = cliffBoxGeo.attributes.position;
+    for (let i = 0; i < cliffPos.count; i++) {
+      const cx = cliffPos.getX(i);
+      const cy = cliffPos.getY(i);
+      const cz = cliffPos.getZ(i);
+      const n = fbm(cx * 0.1, cy * 0.05, 4) + fbm(cx * 0.5, cy * 0.25, 2) * 0.15;
+      cliffPos.setX(i, cx + (n - 0.55) * 5.0);
+      cliffPos.setZ(i, cz + (n - 0.55) * 5.0);
+    }
+    cliffBoxGeo.computeVertexNormals();
+
+    const cliffCount = 28;
+    const cliffMesh = new THREE.InstancedMesh(cliffBoxGeo, cliffMaterial, cliffCount);
+    cliffMesh.castShadow = true;
+    cliffMesh.receiveShadow = true;
+
+    let cliffIdx = 0;
+    // Left Cliffs
+    for (let i = 0; i < 14; i++) {
+      const cz = 30 - i * 14;
+      const cx = -48 + (Math.random() - 0.5) * 6;
+      const cy = -22 + (Math.random() - 0.5) * 4;
+      dummy.position.set(cx, cy, cz);
+      dummy.rotation.set((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.1);
+      dummy.scale.set(0.85 + Math.random() * 0.3, 0.9 + Math.random() * 0.25, 0.85 + Math.random() * 0.3);
+      dummy.updateMatrix();
+      cliffMesh.setMatrixAt(cliffIdx++, dummy.matrix);
+    }
+    // Right Cliffs
+    for (let i = 0; i < 14; i++) {
+      const cz = 30 - i * 14;
+      const cx = 46 + (Math.random() - 0.5) * 6;
+      const cy = -22 + (Math.random() - 0.5) * 4;
+      dummy.position.set(cx, cy, cz);
+      dummy.rotation.set((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.1);
+      dummy.scale.set(0.85 + Math.random() * 0.3, 0.9 + Math.random() * 0.25, 0.85 + Math.random() * 0.3);
+      dummy.updateMatrix();
+      cliffMesh.setMatrixAt(cliffIdx++, dummy.matrix);
+    }
+    scene.add(cliffMesh);
+
+    // The Great Monumental Bridge
+    const bridgeZ = -45;
+    // Roadbed
+    const roadbedGeo = new THREE.BoxGeometry(96, 2.2, 5.8);
+    const roadbed = new THREE.Mesh(roadbedGeo, bridgeStoneMaterial);
+    roadbed.position.set(-8, 7.6, bridgeZ);
+    roadbed.receiveShadow = true;
+    roadbed.castShadow = true;
+    scene.add(roadbed);
+
+    // Massive Bridge Pillars
+    const pillarCount = 4;
+    const pillarGeo = new THREE.BoxGeometry(4.2, 66, 5.8);
+    const pillarMesh = new THREE.InstancedMesh(pillarGeo, bridgeStoneMaterial, pillarCount);
+    pillarMesh.castShadow = true;
+    pillarMesh.receiveShadow = true;
+    const pillarXs = [-44, -24, -4, 16];
+    for (let i = 0; i < pillarCount; i++) {
+      dummy.position.set(pillarXs[i], -25.4, bridgeZ);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      pillarMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(pillarMesh);
+
+    // Semicircular Arches Connecting Pillars (Increased segment count)
+    const archCount = 4;
+    const archGeo = new THREE.TorusGeometry(10, 1.25, 64, 256, Math.PI);
+    const archMesh = new THREE.InstancedMesh(archGeo, bridgeStoneMaterial, archCount);
+    archMesh.castShadow = true;
+    archMesh.receiveShadow = true;
+    const archXs = [-34, -14, 6, 26];
+    for (let i = 0; i < archCount; i++) {
+      dummy.position.set(archXs[i], -2.4, bridgeZ);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      archMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(archMesh);
+
+    // Bridge Parapets (crenelation blocks along both edges)
+    const parapetGeo = new THREE.BoxGeometry(1.6, 0.9, 0.4);
+    const parapetCount = 82;
+    const parapetMesh = new THREE.InstancedMesh(parapetGeo, bridgeStoneMaterial, parapetCount);
+    parapetMesh.castShadow = true;
+    parapetMesh.receiveShadow = true;
+    let pIdx = 0;
+    for (let i = 0; i < 41; i++) {
+      const px = -54 + i * 2.35;
+      if (px > 35) continue;
+      // Front edge
+      dummy.position.set(px, 7.6 + 1.1, bridgeZ + 2.7);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      parapetMesh.setMatrixAt(pIdx++, dummy.matrix);
+
+      // Back edge
+      dummy.position.set(px, 7.6 + 1.1, bridgeZ - 2.7);
+      dummy.updateMatrix();
+      parapetMesh.setMatrixAt(pIdx++, dummy.matrix);
+    }
+    scene.add(parapetMesh);
+
+    // Bridge Pillar Capitals & Bases
+    const capitalGeo = new THREE.BoxGeometry(5.0, 2.0, 6.6);
+    const capitalMesh = new THREE.InstancedMesh(capitalGeo, bridgeStoneMaterial, pillarCount);
+    capitalMesh.castShadow = true;
+    capitalMesh.receiveShadow = true;
+    for (let i = 0; i < pillarCount; i++) {
+      dummy.position.set(pillarXs[i], 7.6 - 1.0, bridgeZ);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      capitalMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(capitalMesh);
+
+    const baseMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(5.6, 4.0, 7.2), bridgeStoneMaterial, pillarCount);
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    for (let i = 0; i < pillarCount; i++) {
+      dummy.position.set(pillarXs[i], -58.4 + 2.0, bridgeZ);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      baseMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(baseMesh);
+
+    // Bridge and Canyon Floor Rubble Details
+    const rockGeo = organicGeometry(1.0, 0.7, 0.9, 0.8, 0.13);
+
+    const bridgeRubbleMesh = new THREE.InstancedMesh(rockGeo, bridgeStoneMaterial, 70);
+    bridgeRubbleMesh.castShadow = true;
+    bridgeRubbleMesh.receiveShadow = true;
+    for (let i = 0; i < 15; i++) {
+      const rx = -50 + Math.random() * 85;
+      const rz = bridgeZ + (Math.random() - 0.5) * 4.6;
+      dummy.position.set(rx, 7.6 + 1.2, rz);
+      dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      dummy.scale.setScalar(0.6 + Math.random() * 0.8);
+      dummy.updateMatrix();
+      bridgeRubbleMesh.setMatrixAt(i, dummy.matrix);
+    }
+    for (let i = 15; i < 35; i++) {
+      const px = pillarXs[Math.floor(Math.random() * 4)] + (Math.random() - 0.5) * 12;
+      const rz = bridgeZ + (Math.random() - 0.5) * 8;
+      dummy.position.set(px, -64.6, rz);
+      dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      dummy.scale.setScalar(1.2 + Math.random() * 1.8);
+      dummy.updateMatrix();
+      bridgeRubbleMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(bridgeRubbleMesh);
+
+    // Foreground Broken Pillars
+    const brokenPillarGroup = new THREE.Group();
+    scene.add(brokenPillarGroup);
+
+    const bpColGeo = new THREE.CylinderGeometry(0.7, 0.75, 4.0, 64);
+    const bp1Y = getTerrainHeight(-5, -10) - 0.2;
+    const bp1 = new THREE.Mesh(bpColGeo, bridgeStoneMaterial);
+    bp1.position.set(-15, bp1Y + 2.0, 5);
+    bp1.rotation.set(0.1, 0, -0.05);
+    bp1.castShadow = true;
+    bp1.receiveShadow = true;
+    brokenPillarGroup.add(bp1);
+
+    const bp1Base = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 2.0), bridgeStoneMaterial);
+    bp1Base.position.copy(bp1.position);
+    bp1Base.position.y -= 1.8;
+    bp1Base.rotation.copy(bp1.rotation);
+    bp1Base.castShadow = true;
+    bp1Base.receiveShadow = true;
+    brokenPillarGroup.add(bp1Base);
+
+    const bp2Y = getTerrainHeight(12, -3) - 0.2;
+    const bp2Seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.7, 2.2, 64), bridgeStoneMaterial);
+    bp2Seg1.position.set(2, bp2Y + 0.6, 12);
+    bp2Seg1.rotation.set(Math.PI / 2, 0.4, 0.8);
+    bp2Seg1.castShadow = true;
+    bp2Seg1.receiveShadow = true;
+    brokenPillarGroup.add(bp2Seg1);
+
+    const bp2Seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.65, 1.8, 64), bridgeStoneMaterial);
+    bp2Seg2.position.set(3.5, bp2Y + 0.4, 11);
+    bp2Seg2.rotation.set(1.4, -0.2, 1.1);
+    bp2Seg2.castShadow = true;
+    bp2Seg2.receiveShadow = true;
+    brokenPillarGroup.add(bp2Seg2);
+
+    // Sanctuary Architecture carved into far right cliff
+    const sanctuaryGroup = new THREE.Group();
+    sanctuaryGroup.position.set(43, 7.6, bridgeZ);
+    scene.add(sanctuaryGroup);
+
+    // Portal Wall Backing
+    const portalBack = new THREE.Mesh(new THREE.BoxGeometry(16, 28, 12), bridgeStoneMaterial);
+    portalBack.position.set(2, 12.8, -4);
+    portalBack.castShadow = true;
+    portalBack.receiveShadow = true;
+    sanctuaryGroup.add(portalBack);
+
+    // Portal Wall Cornice
+    const portalCornice = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.8, 13.2), bridgeStoneMaterial);
+    portalCornice.position.set(2, 12.8 + 14 - 0.4, -4);
+    portalCornice.castShadow = true;
+    portalCornice.receiveShadow = true;
+    sanctuaryGroup.add(portalCornice);
+
+    // Portal Portal (dark silhouette inside)
+    const portalOpening = new THREE.Mesh(
+      new THREE.BoxGeometry(7.2, 17.5, 12.2),
+      new THREE.MeshBasicMaterial({ color: 0x11161a })
+    );
+    portalOpening.position.set(2, 7.65, -3.9);
+    sanctuaryGroup.add(portalOpening);
+
+    // Portal Pillars (smooth high-radial cylinder)
+    const porticoPillarGeo = new THREE.CylinderGeometry(0.48, 0.48, 17, 64);
+    const pillarLeft = new THREE.Mesh(porticoPillarGeo, bridgeStoneMaterial);
+    pillarLeft.position.set(-1.0, 7.4, 1.5);
+    pillarLeft.castShadow = true;
+    pillarLeft.receiveShadow = true;
+    sanctuaryGroup.add(pillarLeft);
+
+    // Column Bases & Capitals for Portico
+    const porticoColBaseGeo = new THREE.BoxGeometry(1.2, 0.6, 1.2);
+    const pLeftBase = new THREE.Mesh(porticoColBaseGeo, bridgeStoneMaterial);
+    pLeftBase.position.set(-1.0, -1.1 + 0.3, 1.5);
+    pLeftBase.castShadow = true;
+    pLeftBase.receiveShadow = true;
+    sanctuaryGroup.add(pLeftBase);
+
+    const pLeftCap = new THREE.Mesh(porticoColBaseGeo, bridgeStoneMaterial);
+    pLeftCap.position.set(-1.0, 7.4 + 8.5 - 0.3, 1.5);
+    pLeftCap.castShadow = true;
+    pLeftCap.receiveShadow = true;
+    sanctuaryGroup.add(pLeftCap);
+
+    const pillarRight = pillarLeft.clone();
+    pillarRight.position.x = 5.0;
+    sanctuaryGroup.add(pillarRight);
+
+    const pRightBase = pLeftBase.clone();
+    pRightBase.position.x = 5.0;
+    sanctuaryGroup.add(pRightBase);
+
+    const pRightCap = pLeftCap.clone();
+    pRightCap.position.x = 5.0;
+    sanctuaryGroup.add(pRightCap);
+
+    // Monumental Steps
+    const stepsCount = 4;
+    for (let i = 0; i < stepsCount; i++) {
+      const stepWidth = 16 - i * 1.5;
+      const stepDepth = 4;
+      const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, 2, stepDepth), bridgeStoneMaterial);
+      stepMesh.position.set(2, -1 - i * 1.8, 4 + i * 3.5);
+      stepMesh.castShadow = true;
+      stepMesh.receiveShadow = true;
+      sanctuaryGroup.add(stepMesh);
+    }
+
+    // Temple Towers
+    const towerGeo = new THREE.BoxGeometry(6, 68, 6);
+    const leftTower = new THREE.Mesh(towerGeo, bridgeStoneMaterial);
+    leftTower.position.set(-8, 30.2, -6);
+    leftTower.castShadow = true;
+    leftTower.receiveShadow = true;
+    sanctuaryGroup.add(leftTower);
+
+    // Tower Cornice
+    const towerCorniceL = new THREE.Mesh(new THREE.BoxGeometry(7.2, 1.2, 7.2), bridgeStoneMaterial);
+    towerCorniceL.position.set(-8, 30.2 + 34 - 0.6, -6);
+    towerCorniceL.castShadow = true;
+    towerCorniceL.receiveShadow = true;
+    sanctuaryGroup.add(towerCorniceL);
+
+    const rightTower = leftTower.clone();
+    rightTower.position.x = 12;
+    sanctuaryGroup.add(rightTower);
+
+    const towerCorniceR = towerCorniceL.clone();
+    towerCorniceR.position.x = 12;
+    sanctuaryGroup.add(towerCorniceR);
+
+    // Accent blocks (Quoins) on Tower corners for masonry seams
+    const accentGeo = new THREE.BoxGeometry(0.8, 1.5, 0.8);
+    const accentMesh = new THREE.InstancedMesh(accentGeo, bridgeStoneMaterial, 64);
+    accentMesh.castShadow = true;
+    accentMesh.receiveShadow = true;
+    let accIdx = 0;
+    const towerXs = [-8, 12];
+    for (let t = 0; t < 2; t++) {
+      const tx = towerXs[t];
+      for (let h = 0; h < 8; h++) {
+        const ty = 4 + h * 8;
+        // Outer corners
+        const cx = tx + (t === 0 ? -3.0 : 3.0);
+        const cz = -6 + 3.0;
+        dummy.position.set(cx, ty, cz);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1.0, 1.0, 1.0);
+        dummy.updateMatrix();
+        accentMesh.setMatrixAt(accIdx++, dummy.matrix);
+
+        // Inner corners
+        const cx2 = tx + (t === 0 ? 3.0 : -3.0);
+        dummy.position.set(cx2, ty + 4, cz);
+        dummy.updateMatrix();
+        accentMesh.setMatrixAt(accIdx++, dummy.matrix);
+      }
+    }
+    sanctuaryGroup.add(accentMesh);
+
+    // Distant Layered Mountains (Atmospheric Perspective)
+    const mountainGeo = new THREE.ConeGeometry(42, 130, 48, 22);
+    const ridgePositions = mountainGeo.attributes.position;
+    for (let i = 0; i < ridgePositions.count; i++) {
+      const x = ridgePositions.getX(i), y = ridgePositions.getY(i), z = ridgePositions.getZ(i);
+      const altitude = (y + 65) / 130;
+      const angle = Math.atan2(z, x);
+      const ridge = 1 + Math.sin(angle * 5 + altitude * 3) * 0.18 + Math.cos(angle * 9) * 0.09;
+      ridgePositions.setXYZ(i, x * ridge + altitude * altitude * 16,
+        y + (fbm(x * 0.07, z * 0.07, 3) - 0.4) * 17 * Math.sin(altitude * Math.PI),
+        z * ridge - altitude * altitude * 9);
+    }
+    mountainGeo.computeVertexNormals();
+    mountainGeo.rotateY(Math.PI / 4);
+    const mountainCount = 8;
+    const mountainMesh = new THREE.InstancedMesh(mountainGeo, mountainMaterial, mountainCount);
+    mountainMesh.castShadow = true;
+    mountainMesh.receiveShadow = true;
+
+    const mountainPositions = [
+      [-85, 10, -180, 1.0, 1.0, 1.0],
+      [-42, 22, -192, 1.25, 1.2, 1.25],
+      [5, 8, -172, 0.85, 0.85, 0.85],
+      [45, 16, -202, 1.45, 1.25, 1.45],
+      [-115, 30, -225, 1.85, 1.7, 1.85],
+      [-65, 42, -212, 1.65, 1.55, 1.65],
+      [12, 22, -232, 1.45, 1.45, 1.45],
+      [75, 38, -222, 2.0, 1.75, 2.0]
+    ];
+    for (let i = 0; i < mountainCount; i++) {
+      const p = mountainPositions[i];
+      dummy.position.set(p[0], p[1], p[2]);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(p[3], p[4], p[5]);
+      dummy.updateMatrix();
+      mountainMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(mountainMesh);
+
+    // Instanced Windswept Grass Blades (Higher silhouette fidelity)
+    const grassCount = 4500;
+    const grassBladeGeo = new THREE.ConeGeometry(0.08, 1.1, 48, 4);
+    grassBladeGeo.translate(0, 0.55, 0);
+    const grassMesh = new THREE.InstancedMesh(grassBladeGeo, grassMaterial, grassCount);
+    grassMesh.receiveShadow = true;
+
+    for (let i = 0; i < grassCount; i++) {
+      const localX = -25 + Math.random() * 43;
+      const localZ = -10 + Math.random() * 38;
+      const localY = getTerrainHeight(localX, localZ);
+
+      const worldX = localX + foregroundTerrain.position.x;
+      const worldY = localY + foregroundTerrain.position.y;
+      const worldZ = localZ + foregroundTerrain.position.z;
+
+      dummy.position.set(worldX, worldY - 0.08, worldZ);
+      dummy.rotation.set(
+        (Math.random() - 0.5) * 0.12,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.12
+      );
+      dummy.scale.set(0.65 + Math.random() * 0.7, 0.7 + Math.random() * 0.7, 0.65 + Math.random() * 0.7);
+      dummy.updateMatrix();
+      grassMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(grassMesh);
+
+    // Instanced Flowers (Lavender/Red orange blossoms)
+    const flowerCount = 350;
+    const flowerGeo = new THREE.BufferGeometry();
+    const fVertices = new Float32Array([
+      -0.18, 0, 0,
+      0.18, 0, 0,
+      -0.18, 0.6, 0,
+      0.18, 0.6, 0,
+      0, 0, -0.18,
+      0, 0, 0.18,
+      0, 0.6, -0.18,
+      0, 0.6, 0.18
+    ]);
+    const fIndices = [
+      0, 1, 2, 1, 3, 2,
+      4, 5, 6, 5, 7, 6
+    ];
+    flowerGeo.setAttribute("position", new THREE.BufferAttribute(fVertices, 3));
+    flowerGeo.setIndex(fIndices);
+    flowerGeo.computeVertexNormals();
+
+    const flowerMat = new THREE.MeshStandardMaterial({
+      color: 0xeb6b56,
+      roughness: 0.9,
+      side: THREE.DoubleSide
+    });
+
+    flowerMat.onBeforeCompile = (shader) => {
+      shader.uniforms.time = { value: 0 };
+      shader.vertexShader = `
+        uniform float time;
+      ` + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        `
+          #include <begin_vertex>
+          float windTime = time * 2.0;
+          float wave = sin(windTime + position.x * 0.8 + position.z * 0.8) * 0.16;
+          wave += cos(windTime * 1.5 + position.x * 1.2 - position.z * 0.9) * 0.06;
+          float h = position.y;
+          transformed.x += wave * h * h;
+          transformed.z += wave * 0.5 * h * h;
+        `
+      );
+      flowerMat.userData.shader = shader;
+    };
+
+    const flowerMesh = new THREE.InstancedMesh(flowerGeo, flowerMat, flowerCount);
+    flowerMesh.receiveShadow = true;
+
+    for (let i = 0; i < flowerCount; i++) {
+      const localX = -25 + Math.random() * 43;
+      const localZ = -10 + Math.random() * 38;
+      const localY = getTerrainHeight(localX, localZ);
+
+      const worldX = localX + foregroundTerrain.position.x;
+      const worldY = localY + foregroundTerrain.position.y;
+      const worldZ = localZ + foregroundTerrain.position.z;
+
+      dummy.position.set(worldX, worldY - 0.04, worldZ);
+      dummy.rotation.set(
+        (Math.random() - 0.5) * 0.1,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.1
+      );
+      dummy.scale.setScalar(0.7 + Math.random() * 0.6);
+      dummy.updateMatrix();
+      flowerMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(flowerMesh);
+
+    // Instanced Rocks scattered on terrain
+    const terrainRockGeo = organicGeometry(0.8, 0.6, 0.7, 0.8, 0.14);
+
+    const terrainRockMesh = new THREE.InstancedMesh(terrainRockGeo, stoneMaterial, 240);
+    terrainRockMesh.castShadow = true;
+    terrainRockMesh.receiveShadow = true;
+    for (let i = 0; i < 240; i++) {
+      const localX = -25 + Math.random() * 43;
+      const localZ = -10 + Math.random() * 38;
+      const localY = getTerrainHeight(localX, localZ);
+
+      const worldX = localX + foregroundTerrain.position.x;
+      const worldY = localY + foregroundTerrain.position.y;
+      const worldZ = localZ + foregroundTerrain.position.z;
+
+      dummy.position.set(worldX, worldY - 0.15, worldZ);
+      dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      dummy.scale.set(0.4 + Math.random() * 0.8, 0.3 + Math.random() * 0.7, 0.4 + Math.random() * 0.8);
+      dummy.updateMatrix();
+      terrainRockMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(terrainRockMesh);
+
+    // GRAPHICS ENHANCEMENT LOOP 2: GEOMETRY + DENSITY
+    
+    // 1. Cliff Strata/Ledge Bands
+    const strataGeo = new THREE.BoxGeometry(18, 0.8, 12);
+    const strataMesh = new THREE.InstancedMesh(strataGeo, cliffMaterial, 80);
+    strataMesh.castShadow = true;
+    strataMesh.receiveShadow = true;
+    for (let i = 0; i < 80; i++) {
+      const isLeft = i < 20;
+      const cz = 30 - (i % 20) * 8.5;
+      const cx = isLeft ? (-40 + Math.sin(i) * 2) : (38 + Math.cos(i) * 2);
+      const cy = -20 + (i % 5) * 8 + Math.sin(i) * 2;
+      dummy.position.set(cx, cy, cz);
+      dummy.rotation.set((Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.05);
+      dummy.scale.set(0.9 + Math.random() * 0.3, 0.8 + Math.random() * 0.4, 0.9 + Math.random() * 0.3);
+      dummy.updateMatrix();
+      strataMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(strataMesh);
+
+    // 2. Bridge Voussoir Arch Masonry Accents
+    const voussoirGeo = new THREE.BoxGeometry(1.6, 0.5, 3.2);
+    const voussoirMesh = new THREE.InstancedMesh(voussoirGeo, bridgeStoneMaterial, 88);
+    voussoirMesh.castShadow = true;
+    voussoirMesh.receiveShadow = true;
+    let vCount = 0;
+    const bridgeZCoord = -45;
+    const archXCoordinates = [-34, -14, 6, 26];
+    for (let a = 0; a < 4; a++) {
+      const archX = archXCoordinates[a];
+      for (let j = 0; j < 11; j++) {
+        const angle = (j / 10) * Math.PI;
+        const rad = 10.75;
+        const px = archX + Math.cos(angle) * rad;
+        const py = -2.4 + Math.sin(angle) * rad;
+        dummy.position.set(px, py, bridgeZCoord);
+        dummy.rotation.set(0, 0, angle - Math.PI / 2);
+        dummy.scale.set(1.0, 1.0, 1.0);
+        dummy.updateMatrix();
+        voussoirMesh.setMatrixAt(vCount++, dummy.matrix);
+      }
+    }
+    scene.add(voussoirMesh);
+
+    // 3. Sanctuary Buttresses (Stepped segments)
+    const buttressSegmentGeo = new THREE.BoxGeometry(1.2, 12, 1.4);
+    const buttressMesh = new THREE.InstancedMesh(buttressSegmentGeo, bridgeStoneMaterial, 24);
+    buttressMesh.castShadow = true;
+    buttressMesh.receiveShadow = true;
+    const buttressCols = [
+      { x: -8, z: -2.4, rx: 0, ry: 0 },
+      { x: -11.4, z: -6, rx: 0, ry: Math.PI / 2 },
+      { x: 12, z: -2.4, rx: 0, ry: 0 },
+      { x: 15.4, z: -6, rx: 0, ry: Math.PI / 2 }
+    ];
+    let bCount = 0;
+    for (let c = 0; c < 4; c++) {
+      const col = buttressCols[c];
+      for (let tier = 0; tier < 3; tier++) {
+        const ty = 8 + tier * 12;
+        const tzOffset = (2 - tier) * 0.45;
+        dummy.position.set(col.x, ty, col.z);
+        dummy.rotation.set(0, col.ry, 0);
+        dummy.translateZ(tzOffset);
+        dummy.scale.set(1.0, 1.0 - tier * 0.1, 1.0 - tier * 0.15);
+        dummy.updateMatrix();
+        buttressMesh.setMatrixAt(bCount++, dummy.matrix);
+      }
+    }
+    sanctuaryGroup.add(buttressMesh);
+
+    // 4. Sanctuary Cornice Dentils
+    const dentilGeo = new THREE.BoxGeometry(0.35, 0.4, 1.0);
+    const dentilMesh = new THREE.InstancedMesh(dentilGeo, bridgeStoneMaterial, 80);
+    dentilMesh.castShadow = true;
+    dentilMesh.receiveShadow = true;
+    let dCount = 0;
+    for (let i = 0; i < 24; i++) {
+      const px = -6.2 + i * 0.7;
+      dummy.position.set(px, 25.6, 2.3);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      dentilMesh.setMatrixAt(dCount++, dummy.matrix);
+    }
+    for (let i = 0; i < 8; i++) {
+      const px = -11.2 + i * 0.9;
+      dummy.position.set(px, 62.6, -2.6);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      dentilMesh.setMatrixAt(dCount++, dummy.matrix);
+    }
+    for (let i = 0; i < 8; i++) {
+      const px = 8.8 + i * 0.9;
+      dummy.position.set(px, 62.6, -2.6);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      dentilMesh.setMatrixAt(dCount++, dummy.matrix);
+    }
+    sanctuaryGroup.add(dentilMesh);
+
+    // 5. Foreground Stone Fragments
+    const fragGeo = new THREE.DodecahedronGeometry(0.7, 0);
+    const fragMesh = new THREE.InstancedMesh(fragGeo, bridgeStoneMaterial, 24);
+    fragMesh.castShadow = true;
+    fragMesh.receiveShadow = true;
+    for (let i = 0; i < 24; i++) {
+      const isLeft = i < 6;
+      const fx = isLeft ? (-15 + (Math.random() - 0.5) * 6) : (2 + (Math.random() - 0.5) * 6);
+      const fz = isLeft ? (5 + (Math.random() - 0.5) * 6) : (12 + (Math.random() - 0.5) * 6);
+      const fy = getTerrainHeight(fx - foregroundTerrain.position.x, fz - foregroundTerrain.position.z) + foregroundTerrain.position.y - 0.1;
+      dummy.position.set(fx, fy, fz);
+      dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      dummy.scale.set(1.2 + Math.random() * 0.8, 0.6 + Math.random() * 0.4, 1.0 + Math.random() * 0.8);
+      dummy.updateMatrix();
+      fragMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(fragMesh);
+
+    // 6. Foreground Vegetation/Bush Clusters
+    const bushGeo = organicGeometry(1.8, 1.5, 1.7, 1, 0.16);
+    const bushMaterial = new THREE.MeshStandardMaterial({
+      map: grassTexture,
+      color: 0x4f6b32,
+      bumpMap: grassHeight,
+      bumpScale: 0.12,
+      roughness: 0.95
+    });
+    const bushMesh = new THREE.InstancedMesh(bushGeo, bushMaterial, 56);
+    bushMesh.castShadow = true;
+    bushMesh.receiveShadow = true;
+    for (let i = 0; i < 56; i++) {
+      const fx = -22 + Math.random() * 38;
+      const fz = -10 + Math.random() * 32;
+      const fy = getTerrainHeight(fx, fz) + foregroundTerrain.position.y - 0.2;
+      const worldX = fx + foregroundTerrain.position.x;
+      const worldZ = fz + foregroundTerrain.position.z;
+      dummy.position.set(worldX, fy, worldZ);
+      dummy.rotation.set((Math.random() - 0.5) * 0.2, Math.random() * Math.PI, (Math.random() - 0.5) * 0.2);
+      dummy.scale.set(0.8 + Math.random() * 0.7, 0.7 + Math.random() * 0.6, 0.8 + Math.random() * 0.7);
+      dummy.updateMatrix();
+      bushMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(bushMesh);
+
+    // Guardian's processional terrace: a solid rock mass rooted in the canyon floor.
+    const guardianGroundY = -5;
+    const terraceGeometry = new THREE.CylinderGeometry(1, 1.08, 60, 128, 16);
+    const terracePositions = terraceGeometry.attributes.position;
+    for (let i = 0; i < terracePositions.count; i++) {
+      const x = terracePositions.getX(i), y = terracePositions.getY(i), z = terracePositions.getZ(i);
+      const angle = Math.atan2(z, x);
+      const erosion = 1 + 0.035 * Math.sin(angle * 7) + 0.025 * Math.cos(angle * 11);
+      terracePositions.setXYZ(i, -8 + x * 49 * erosion, y - 35,
+        -119 + z * 29 * erosion);
+    }
+    terraceGeometry.computeVertexNormals();
+    const terraceTopMaterial = bridgeStoneMaterial.clone();
+    terraceTopMaterial.color.set(0x888775);
+    terraceTopMaterial.roughness = 0.98;
+    const guardianTerrace = new THREE.Mesh(terraceGeometry,
+      [cliffMaterial, terraceTopMaterial, cliffMaterial]);
+    guardianTerrace.castShadow = guardianTerrace.receiveShadow = true;
+    scene.add(guardianTerrace);
+
+    // Worn inset stones show a deliberate procession route, clear of the footfalls.
+    const routeStoneGeometry = organicGeometry(1.2, 0.18, 1.8, 0.7, 0.06);
+    const routeStones = new THREE.InstancedMesh(routeStoneGeometry, bridgeStoneMaterial, 96);
+    for (let i = 0; i < 96; i++) {
+      const angle = i / 96 * Math.PI * 2;
+      dummy.position.set(-8 + 35 * Math.sin(angle), guardianGroundY - 0.05,
+        -119 + 18 * Math.cos(angle));
+      dummy.rotation.set(0, angle, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+      routeStones.setMatrixAt(i, dummy.matrix);
+    }
+    routeStones.receiveShadow = true; scene.add(routeStones);
+
+    // Distant Wandering Colossus
+    const colossusGroup = new THREE.Group();
+    scene.add(colossusGroup);
+
+    const colossusBody = new THREE.Group();
+    colossusGroup.add(colossusBody);
+
+    // Torso
+    const torsoMesh = new THREE.Mesh(organicGeometry(8.5, 6.0, 13.5, 0.82), stoneMaterial);
+    torsoMesh.castShadow = true;
+    torsoMesh.receiveShadow = true;
+    colossusBody.add(torsoMesh);
+
+    // Torso Detail Armor Plates
+    const pauldronGeo = organicGeometry(2.4, 4.4, 5.8, 0.72);
+    const pauldronL = new THREE.Mesh(pauldronGeo, colossusArmorMaterial);
+    pauldronL.position.set(-4.1, 0.5, 2.0);
+    pauldronL.rotation.z = -0.15;
+    colossusBody.add(pauldronL);
+
+    const pauldronR = pauldronL.clone();
+    pauldronR.position.x = 4.1;
+    pauldronR.rotation.z = 0.15;
+    colossusBody.add(pauldronR);
+
+    const chestPlateGeo = organicGeometry(3.9, 4.5, 1.4, 0.75);
+    const chestL = new THREE.Mesh(chestPlateGeo, colossusArmorMaterial);
+    chestL.position.set(-1.7, 0.0, 6.1);
+    chestL.rotation.y = 0.1;
+    colossusBody.add(chestL);
+
+    const chestR = chestL.clone();
+    chestR.position.x = 1.7;
+    chestR.rotation.y = -0.1;
+    colossusBody.add(chestR);
+
+    // Spines along back
+    const spineGeo = curvedTaperGeometry(0.025, 0.7, 3.2, -0.45, 0.12);
+    spineGeo.rotateX(-Math.PI / 3);
+    const spinesGroup = new THREE.Group();
+    spinesGroup.position.set(0, 2.8, -4.0);
+    colossusBody.add(spinesGroup);
+
+    for (let i = 0; i < 5; i++) {
+      const spine = new THREE.Mesh(spineGeo, stoneMaterial);
+      spine.position.set((i % 2 === 0 ? -0.5 : 0.5), 0, i * 2.2 - 2.0);
+      spine.scale.setScalar(0.75 + (5 - i) * 0.15);
+      spine.castShadow = true;
+      spinesGroup.add(spine);
+    }
+
+    // Head and Neck
+    const neckMesh = new THREE.Mesh(organicGeometry(2.8, 3.2, 4.0), stoneMaterial);
+    neckMesh.position.set(0, 1.8, 6.2);
+    neckMesh.castShadow = true;
+    neckMesh.receiveShadow = true;
+    colossusBody.add(neckMesh);
+
+    const headMesh = new THREE.Mesh(organicGeometry(3.3, 3.0, 4.3, 0.82), stoneMaterial);
+    headMesh.position.set(0, 0.8, 2.2);
+    headMesh.castShadow = true;
+    headMesh.receiveShadow = true;
+    neckMesh.add(headMesh);
+
+    // A projecting muzzle breaks up the spherical head silhouette.
+    const muzzle = new THREE.Mesh(organicGeometry(2.4, 1.5, 2.4, 0.78), stoneMaterial);
+    muzzle.position.set(0, -0.65, 1.25);
+    muzzle.castShadow = muzzle.receiveShadow = true;
+    headMesh.add(muzzle);
+
+    // Head details (crown/ridge)
+    const crestGeo = curvedTaperGeometry(0.05, 0.4, 2.8, 0.3);
+    crestGeo.rotateX(Math.PI / 2);
+    const crest = new THREE.Mesh(crestGeo, stoneMaterial);
+    crest.position.set(0, 1.5, -0.5);
+    headMesh.add(crest);
+
+    // Glowing Eyes
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x88f5ff });
+    const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.28, 64, 64), eyeMat);
+    leftEye.position.set(-0.85, 0.35, 1.85);
+    headMesh.add(leftEye);
+
+    const rightEye = leftEye.clone();
+    rightEye.position.x = 0.85;
+    headMesh.add(rightEye);
+
+    // Horns / Crest (Smoother curved/tapered geometry)
+    const hornGeo = curvedTaperGeometry(0.025, 0.4, 2.4, -0.55, 0.15);
+    hornGeo.translate(0, 1.2, 0);
+
+    const leftHorn = new THREE.Mesh(hornGeo, stoneMaterial);
+    leftHorn.position.set(-0.9, 1.6, 0.5);
+    leftHorn.rotation.set(-0.3, 0, -0.2);
+    leftHorn.castShadow = true;
+    leftHorn.receiveShadow = true;
+    headMesh.add(leftHorn);
+
+    const rightHorn = leftHorn.clone();
+    rightHorn.position.x = 0.9;
+    rightHorn.rotation.z = 0.2;
+    headMesh.add(rightHorn);
+
+    // Legs with Pivot Groups and joints & feet
+    const legGeo = curvedTaperGeometry(1.18, 0.68, 11, 1.65, 0.45);
+    legGeo.translate(0, -5.5, 0);
+    const jointGeo = organicGeometry(2.6, 3.4, 3.0);
+    const footGeo = organicGeometry(2.3, 1.5, 3.6, 0.78);
+    footGeo.translate(0, -0.6, 0.6);
+
+    const pivotFL = new THREE.Group();
+    pivotFL.position.set(-3.2, -1.8, 4.2);
+    const legFL = new THREE.Mesh(legGeo, stoneMaterial);
+    legFL.castShadow = true;
+    legFL.receiveShadow = true;
+    const jointFL = new THREE.Mesh(jointGeo, stoneMaterial);
+    const footFL = new THREE.Mesh(footGeo, stoneMaterial);
+    footFL.position.set(0, -11, 0);
+    pivotFL.add(legFL);
+    pivotFL.add(jointFL);
+    pivotFL.add(footFL);
+    colossusBody.add(pivotFL);
+
+    const pivotFR = new THREE.Group();
+    pivotFR.position.set(3.2, -1.8, 4.2);
+    const legFR = new THREE.Mesh(legGeo.clone(), stoneMaterial);
+    legFR.castShadow = true;
+    legFR.receiveShadow = true;
+    const jointFR = new THREE.Mesh(jointGeo, stoneMaterial);
+    const footFR = new THREE.Mesh(footGeo, stoneMaterial);
+    footFR.position.set(0, -11, 0);
+    pivotFR.add(legFR);
+    pivotFR.add(jointFR);
+    pivotFR.add(footFR);
+    colossusBody.add(pivotFR);
+
+    const pivotBL = new THREE.Group();
+    pivotBL.position.set(-3.2, -1.8, -4.2);
+    const legBL = new THREE.Mesh(legGeo.clone(), stoneMaterial);
+    legBL.castShadow = true;
+    legBL.receiveShadow = true;
+    const jointBL = new THREE.Mesh(jointGeo, stoneMaterial);
+    const footBL = new THREE.Mesh(footGeo, stoneMaterial);
+    footBL.position.set(0, -11, 0);
+    pivotBL.add(legBL);
+    pivotBL.add(jointBL);
+    pivotBL.add(footBL);
+    colossusBody.add(pivotBL);
+
+    const pivotBR = new THREE.Group();
+    pivotBR.position.set(3.2, -1.8, -4.2);
+    const legBR = new THREE.Mesh(legGeo.clone(), stoneMaterial);
+    legBR.castShadow = true;
+    legBR.receiveShadow = true;
+    const jointBR = new THREE.Mesh(jointGeo, stoneMaterial);
+    const footBR = new THREE.Mesh(footGeo, stoneMaterial);
+    footBR.position.set(0, -11, 0);
+    pivotBR.add(legBR);
+    pivotBR.add(jointBR);
+    pivotBR.add(footBR);
+    colossusBody.add(pivotBR);
+
+    // OBJECT + QUALITY ENHANCEMENT
+    // 1. Colossus face planes & jaw/neck armor detail
+    const scCollar = new THREE.Mesh(organicGeometry(2.7, 1.2, 3.2, 0.75), colossusArmorMaterial);
+    scCollar.position.set(0, -0.6, 0);
+    scCollar.castShadow = true;
+    neckMesh.add(scCollar);
+
+    const jawL = new THREE.Mesh(organicGeometry(0.8, 1.4, 2.2), colossusArmorMaterial);
+    jawL.position.set(-1.25, -0.6, 0.6);
+    jawL.rotation.y = 0.2;
+    jawL.castShadow = true;
+    headMesh.add(jawL);
+
+    const jawR = new THREE.Mesh(organicGeometry(0.8, 1.4, 2.2), colossusArmorMaterial);
+    jawR.position.set(1.25, -0.6, 0.6);
+    jawR.rotation.y = -0.2;
+    jawR.castShadow = true;
+    headMesh.add(jawR);
+
+    // Claws and foot segmentation
+    function addFootClaws(footMesh) {
+      const toeClawGeo = new THREE.ConeGeometry(0.24, 0.72, 32);
+      toeClawGeo.rotateX(Math.PI / 2.4);
+      
+      const clawL = new THREE.Mesh(toeClawGeo, colossusArmorMaterial);
+      clawL.position.set(-0.6, -1.15, 2.2);
+      clawL.castShadow = true;
+      footMesh.add(clawL);
+
+      const clawM = new THREE.Mesh(toeClawGeo, colossusArmorMaterial);
+      clawM.position.set(0.0, -1.15, 2.4);
+      clawM.castShadow = true;
+      footMesh.add(clawM);
+
+      const clawR = new THREE.Mesh(toeClawGeo, colossusArmorMaterial);
+      clawR.position.set(0.6, -1.15, 2.2);
+      clawR.castShadow = true;
+      footMesh.add(clawR);
+
+      // Back heel protection plates
+      const heelPlate = new THREE.Mesh(organicGeometry(1.8, 0.6, 1.2), colossusArmorMaterial);
+      heelPlate.position.set(0, -0.62, -0.85);
+      heelPlate.castShadow = true;
+      footMesh.add(heelPlate);
+    }
+    addFootClaws(footFL);
+    addFootClaws(footFR);
+    addFootClaws(footBL);
+    addFootClaws(footBR);
+
+    // 2. Sanctuary & Bridge masonry enhancements
+    // Roadbed Trim ledge under roadbed
+    const bZ = -45;
+    const roadTrimGeo = new THREE.BoxGeometry(96, 0.4, 6.3);
+    const roadTrim = new THREE.Mesh(roadTrimGeo, bridgeStoneMaterial);
+    roadTrim.position.set(-8, 7.6 - 1.1, bZ);
+    roadTrim.castShadow = true;
+    roadTrim.receiveShadow = true;
+    scene.add(roadTrim);
+
+    // Layered facade arch over sanctuary portal
+    const sanctuaryPortalArch = new THREE.Mesh(new THREE.TorusGeometry(3.8, 0.48, 64, 128, Math.PI), bridgeStoneMaterial);
+    sanctuaryPortalArch.position.set(2, 7.65 + 17.5 / 2, -3.9 + 6.1);
+    sanctuaryPortalArch.castShadow = true;
+    sanctuaryPortalArch.receiveShadow = true;
+    sanctuaryGroup.add(sanctuaryPortalArch);
+
+    // Decorative tower trim bands using instanced mesh
+    const tTrimGeo = new THREE.BoxGeometry(6.5, 0.35, 6.5);
+    const tTrimMesh = new THREE.InstancedMesh(tTrimGeo, bridgeStoneMaterial, 12);
+    tTrimMesh.castShadow = true;
+    tTrimMesh.receiveShadow = true;
+    let tti = 0;
+    const tXs = [-8, 12];
+    for (let t = 0; t < 2; t++) {
+      const tx = tXs[t];
+      for (let h = 0; h < 3; h++) {
+        const ty = 10 + h * 20;
+        dummy.position.set(tx, ty, -6);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        tTrimMesh.setMatrixAt(tti++, dummy.matrix);
+      }
+    }
+    sanctuaryGroup.add(tTrimMesh);
+
+    // Wind Particles
+    const particleCount = 2800;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleSpeeds = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i++) {
+      particlePositions[i * 3] = (Math.random() - 0.5) * 130;
+      particlePositions[i * 3 + 1] = -12 + Math.random() * 42;
+      particlePositions[i * 3 + 2] = -95 + Math.random() * 125;
+      particleSpeeds[i] = 5.0 + Math.random() * 7.5;
+    }
+    particleGeo.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+    const particleMat = new THREE.PointsMaterial({
+      map: mistTexture,
+      color: 0xdfedea,
+      size: 0.082,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
+    // High-altitude atmospheric motes
+    const moteCount = 700;
+    const moteGeo = new THREE.BufferGeometry();
+    const motePositions = new Float32Array(moteCount * 3);
+    const moteSpeeds = new Float32Array(moteCount);
+    for (let i = 0; i < moteCount; i++) {
+      motePositions[i * 3] = (Math.random() - 0.5) * 160;
+      motePositions[i * 3 + 1] = 20 + Math.random() * 60;
+      motePositions[i * 3 + 2] = -180 + Math.random() * 120;
+      moteSpeeds[i] = 0.6 + Math.random() * 0.8;
+    }
+    moteGeo.setAttribute("position", new THREE.BufferAttribute(motePositions, 3));
+    const moteMat = new THREE.PointsMaterial({
+      map: mistTexture,
+      color: 0xffeab0,
+      size: 0.16,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const motes = new THREE.Points(moteGeo, moteMat);
+    scene.add(motes);
+
+    // Warm Sun Halo
+    const sunHaloCanvas = document.createElement("canvas");
+    sunHaloCanvas.width = 128;
+    sunHaloCanvas.height = 128;
+    const sunHaloCtx = sunHaloCanvas.getContext("2d");
+    const sunHaloGrad = sunHaloCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    sunHaloGrad.addColorStop(0, "rgba(255, 235, 190, 0.6)");
+    sunHaloGrad.addColorStop(0.2, "rgba(255, 205, 140, 0.35)");
+    sunHaloGrad.addColorStop(0.5, "rgba(255, 170, 100, 0.12)");
+    sunHaloGrad.addColorStop(1, "rgba(255, 170, 100, 0.0)");
+    sunHaloCtx.fillStyle = sunHaloGrad;
+    sunHaloCtx.fillRect(0, 0, 128, 128);
+    const sunHaloTex = new THREE.CanvasTexture(sunHaloCanvas);
+    sunHaloTex.colorSpace = THREE.SRGBColorSpace;
+    const sunHaloMat = new THREE.SpriteMaterial({
+      map: sunHaloTex,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      transparent: true
+    });
+    const sunHaloSprite = new THREE.Sprite(sunHaloMat);
+    sunHaloSprite.position.set(-110, 80, -220);
+    sunHaloSprite.scale.set(75, 75, 1);
+    scene.add(sunHaloSprite);
+
+    // Circling Birds
+    const birdCount = 52;
+    const birdGeo = new THREE.BufferGeometry();
+    const birdVertices = [];
+    function wingPoint(t, side, trailing) {
+      const span = t * 1.2;
+      const lead = -0.04 - 0.32 * t * t;
+      const chord = 0.42 * Math.pow(1 - t, 0.65) + 0.025;
+      return [side * span, Math.sin(t * Math.PI * 0.85) * 0.18,
+        lead - (trailing ? chord : 0)];
+    }
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 12; i++) {
+        const a = wingPoint(i / 12, side, false);
+        const b = wingPoint(i / 12, side, true);
+        const c = wingPoint((i + 1) / 12, side, false);
+        const d = wingPoint((i + 1) / 12, side, true);
+        birdVertices.push(...a, ...b, ...c, ...b, ...d, ...c);
+      }
+    }
+    birdGeo.setAttribute("position", new THREE.Float32BufferAttribute(birdVertices, 3));
+    
+    const birdIndices = new Float32Array(birdCount);
+    for (let i = 0; i < birdCount; i++) birdIndices[i] = i;
+    birdGeo.setAttribute("birdIndex", new THREE.InstancedBufferAttribute(birdIndices, 1));
+
+    const birdMaterial = new THREE.MeshBasicMaterial({
+      color: 0x1f2930,
+      side: THREE.DoubleSide,
+      fog: true
+    });
+
+    birdMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.time = { value: 0 };
+      shader.vertexShader = `
+        uniform float time;
+        attribute float birdIndex;
+      ` + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        `
+          #include <begin_vertex>
+          float flap = sin(time * 11.5 + birdIndex * 5.6) * abs(position.x) * 0.22;
+          transformed.y += flap;
+        `
+      );
+      birdMaterial.userData.shader = shader;
+    };
+
+    const birdMesh = new THREE.InstancedMesh(birdGeo, birdMaterial, birdCount);
+    scene.add(birdMesh);
+
+    const birdState = [];
+    for (let i = 0; i < birdCount; i++) {
+      birdState.push({
+        phase: Math.random() * Math.PI * 2,
+        radius: 17 + Math.random() * 16,
+        speed: 0.14 + Math.random() * 0.08,
+        heightOffset: (Math.random() - 0.5) * 11,
+        yawOffset: (Math.random() - 0.5) * 0.18,
+        scale: 0.45 + Math.random() * 0.15
+      });
+    }
+
+    // Weathered guardian relief: the lower robe disappears into the living cliff.
+    const guardian = new THREE.Group();
+    guardian.position.set(45, 1, -89);
+    guardian.rotation.y = -0.24;
+    scene.add(guardian);
+    const reliefMaterial = stoneMaterial.clone();
+    reliefMaterial.color.set(0x9caaa1);
+    reliefMaterial.roughness = 0.96;
+    reliefMaterial.bumpScale = 0.28;
+    const creviceMaterial = new THREE.MeshStandardMaterial({ color: 0x414840, roughness: 1 });
+    function reliefPiece(geometry, position, scale, material = reliefMaterial) {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(...position); mesh.scale.set(...scale);
+      mesh.castShadow = mesh.receiveShadow = true;
+      guardian.add(mesh);
+      return mesh;
+    }
+    const erodedRock = organicGeometry(2, 2, 2, 0.87, 0.09);
+    reliefPiece(erodedRock, [4, 3, -5], [17, 43, 12]);
+    reliefPiece(curvedTaperGeometry(8, 14, 48, 2.4, 0.12), [0, 4, 0], [1, 1, 0.64]);
+    reliefPiece(erodedRock, [0, 26, 0], [15, 8, 7]);
+    // Hood, forehead, cheek planes and an asymmetric broken crown.
+    reliefPiece(erodedRock, [0, 38, 1], [9.4, 12, 7.3]);
+    reliefPiece(erodedRock, [0, 36, 6], [5.5, 7.4, 3.4]);
+    reliefPiece(organicGeometry(10.8, 1.6, 3, 0.7), [0, 39, 8], [1, 1, 1]).rotation.z = -0.04;
+    reliefPiece(new THREE.BoxGeometry(3.6, 0.8, 0.5), [-2.8, 37.6, 9.0], [1, 1, 1], creviceMaterial);
+    reliefPiece(new THREE.BoxGeometry(3.0, 0.8, 0.5), [2.6, 37.5, 9.0], [1, 1, 1], creviceMaterial);
+    reliefPiece(organicGeometry(3.0, 5, 3.2, 0.85), [0, 35.4, 9.2], [1, 1, 1]).rotation.x = -0.18;
+    reliefPiece(new THREE.BoxGeometry(4.4, 0.45, 0.35), [0, 32.3, 8.6], [1, 1, 1], creviceMaterial);
+    for (let i = 0; i < 5; i++) {
+      const crown = reliefPiece(erodedRock, [-6 + i * 3, 48 + (i % 2) * 1.8, 0], [1.4, i === 4 ? 1.6 : 4.2, 3]);
+      crown.rotation.z = (i - 2) * -0.13;
+    }
+    // Raised hand survives on one side; opposite arm is broken into the cliff.
+    reliefPiece(erodedRock, [-11, 19, 3], [4.2, 11, 4.1]).rotation.z = -0.23;
+    reliefPiece(erodedRock, [-13, 28, 7], [3.8, 5, 2.5]);
+    for (let i = 0; i < 4; i++) {
+      reliefPiece(erodedRock, [-15.6 + i * 1.65, 33.5 + Math.sin(i) * 0.7, 7.5], [0.85, 3.9 - i * 0.28, 1.1]);
+    }
+    reliefPiece(erodedRock, [12, 19, 0], [4.7, 6, 4]);
+    for (let i = 0; i < 6; i++) {
+      const fold = reliefPiece(curvedTaperGeometry(0.8, 1.5, 31, 1.1, 0.2), [-7.5 + i * 3, 1, 6], [1, 1, 0.7]);
+      fold.rotation.z = (i - 2.5) * 0.045;
+    }
+    const mossRelief = grassTerrainMaterial.clone();
+    mossRelief.color.set(0x70815d);
+    for (let i = 0; i < 11; i++) {
+      reliefPiece(erodedRock, [-10 + hash2(i, 6) * 20, 13 + hash2(i, 2) * 31, 5],
+        [0.8 + hash2(i, 3) * 1.4, 1.0 + hash2(i, 4) * 2, 0.35], mossRelief);
+    }
+
+    // A local, shadowed shaft of evening sun makes the entrance the focal point.
+    const entranceLight = new THREE.SpotLight(0xffcc86, 16500, 110, 0.33, 0.72, 2);
+    entranceLight.position.set(16, 55, -10);
+    entranceLight.target.position.set(44, 17, -42);
+    entranceLight.castShadow = true;
+    entranceLight.shadow.mapSize.set(1024, 1024);
+    entranceLight.shadow.normalBias = 0.08;
+    entranceLight.shadow.bias = -0.00008;
+    scene.add(entranceLight, entranceLight.target);
+    const thresholdGlow = new THREE.PointLight(0xffbf76, 18, 9, 2);
+    thresholdGlow.position.set(45, 14, -39);
+    scene.add(thresholdGlow);
+
+    // Chipped pavers, waystones and votive bowls make a readable pilgrimage route.
+    const paverGeo = new THREE.BoxGeometry(1.8, 0.14, 2.3);
+    const pavers = new THREE.InstancedMesh(paverGeo, bridgeStoneMaterial, 39);
+    pavers.receiveShadow = pavers.castShadow = true;
+    for (let i = 0; i < 39; i++) {
+      dummy.position.set(-48 + i * 2.2, 8.78, bridgeZ + (hash2(i, 8) - 0.5) * 0.36);
+      dummy.rotation.set(0, (hash2(i, 9) - 0.5) * 0.12, 0);
+      dummy.scale.set(0.85 + hash2(i, 10) * 0.15, 1, 1);
+      dummy.updateMatrix(); pavers.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(pavers);
+    const markerGeo = new THREE.BoxGeometry(0.75, 2.3, 0.65);
+    const offeringGeo = new THREE.CylinderGeometry(0.5, 0.28, 0.28, 12);
+    const carvingMaterial = new THREE.MeshStandardMaterial({ color: 0x596155, roughness: 0.97 });
+    for (let i = 0; i < 7; i++) {
+      const x = -40 + i * 12;
+      const marker = new THREE.Mesh(markerGeo, stoneMaterial);
+      marker.position.set(x, 9.8, bridgeZ - 2.0);
+      marker.rotation.z = i === 2 ? 0.9 : (hash2(i, 18) - 0.5) * 0.08;
+      marker.castShadow = marker.receiveShadow = true;
+      scene.add(marker);
+      const mark = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.035, 5, 20), carvingMaterial);
+      mark.position.set(0, 0.4, 0.34); marker.add(mark);
+      const cut = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.67, 0.035), carvingMaterial);
+      cut.position.set(0, 0.13, 0.35); marker.add(cut);
+      const bowl = new THREE.Mesh(offeringGeo, stoneMaterial);
+      bowl.position.set(x + 1, 8.86, bridgeZ - 1.65); bowl.receiveShadow = true; scene.add(bowl);
+    }
+
+    // Fine waterfall ribbons: longitudinal turbulent flow and tapered spray,
+    // deliberately thin enough that the cliff texture remains visible behind them.
+    const waterCanvas = document.createElement("canvas");
+    waterCanvas.width = 128; waterCanvas.height = 512;
+    const waterContext = waterCanvas.getContext("2d");
+    const waterImage = waterContext.createImageData(128, 512);
+    for (let y = 0; y < 512; y++) for (let x = 0; x < 128; x++) {
+      const edge = Math.pow(Math.sin(x / 127 * Math.PI), 1.8);
+      const thread = 0.4 + 0.6 * Math.pow(Math.sin(x * 0.61 + Math.sin(y / 512 * Math.PI * 8) * 0.6), 2);
+      const i = (x + y * 128) * 4;
+      waterImage.data[i] = 205; waterImage.data[i + 1] = 225; waterImage.data[i + 2] = 232;
+      waterImage.data[i + 3] = edge * thread * (0.6 + 0.4 * Math.sin(y / 512 * Math.PI * 12 + x * 0.17)) * 200;
+    }
+    waterContext.putImageData(waterImage, 0, 0);
+    const waterfallTexture = new THREE.CanvasTexture(waterCanvas);
+    waterfallTexture.colorSpace = THREE.SRGBColorSpace;
+    waterfallTexture.wrapT = THREE.RepeatWrapping;
+    waterfallTexture.repeat.y = 3;
+    const waterfallMaterial = new THREE.MeshStandardMaterial({
+      map: waterfallTexture, color: 0xbcd5db, roughness: 0.25, metalness: 0.05,
+      transparent: true, opacity: 0.82, depthWrite: false, side: THREE.DoubleSide
+    });
+    const waterfalls = new THREE.Group(); scene.add(waterfalls);
+    for (let i = 0; i < 3; i++) {
+      const ribbon = new THREE.Mesh(new THREE.PlaneGeometry(0.8 + i * 0.32, 65, 3, 22), waterfallMaterial);
+      // Anchor to the canyon-facing edge of the actual sanctuary ledge instead
+      // of burying the fall inside randomly positioned cliff blocks.
+      strataMesh.getMatrixAt(29, dummy.matrix);
+      dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+      const lip = new THREE.Vector3(-9, 0.42, 1.3 + i * 1.3).applyMatrix4(dummy.matrix);
+      ribbon.position.set(lip.x - 0.5 - i * 0.24, lip.y - 32.5, lip.z);
+      ribbon.rotation.y = -Math.PI / 2 + 0.22;
+      const positions = ribbon.geometry.attributes.position;
+      for (let j = 0; j < positions.count; j++) {
+        positions.setX(j, positions.getX(j) + Math.sin(positions.getY(j) * 0.12 + i) * 0.24);
+      }
+      ribbon.geometry.computeVertexNormals(); waterfalls.add(ribbon);
+    }
+    const spray = new THREE.Sprite(new THREE.SpriteMaterial({ map: mistTexture, color: 0xc6dbe2, opacity: 0.36, transparent: true, depthWrite: false }));
+    spray.position.copy(waterfalls.children[0].position).add(new THREE.Vector3(-1.5, -23, 0));
+    spray.scale.set(15, 11, 1); scene.add(spray);
+    // Keep mist below the terrace rim so feet and their ground contact stay visible.
+    const distantMist = new THREE.Mesh(new THREE.PlaneGeometry(125, 22), new THREE.MeshBasicMaterial({
+      map: mistTexture, color: 0xa7bfcb, transparent: true, opacity: 0.18, depthWrite: false
+    }));
+    distantMist.position.set(-2, -23, -95); scene.add(distantMist);
+
+    // Cinematic Camera Curve Path
+    const camPath = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-34, 16.5, 24),
+      new THREE.Vector3(-14, 12.5, 17),
+      new THREE.Vector3(26, 20, -32),
+      new THREE.Vector3(24, 15, -82),
+      new THREE.Vector3(-14, 12, -84),
+      new THREE.Vector3(-24, 20, -30)
+    ], true);
+
+    // GRAPHICS ENHANCEMENT LOOP 3: ATMOSPHERE + FINAL GRADE
+    // Color Grading Custom Post-Processing Pass
+    const GradeShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        time: { value: 0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float time;
+        varying vec2 vUv;
+
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
+
+        void main() {
+          vec2 uv = vUv;
+          vec2 center = vec2(0.5);
+          float dist = length(uv - center);
+          
+          // Enhanced barrel distortion
+          vec2 uvDist = uv - center;
+          float barrelStrength = 0.045;
+          float r2 = dot(uvDist, uvDist);
+          uv = center + uvDist * (1.0 + barrelStrength * r2);
+          
+          // Enhanced Chromatic Aberration (quadratic falloff)
+          float caStrength = dist * dist * 0.0014;
+          float r = texture2D(tDiffuse, uv - vec2(caStrength, 0.0)).r;
+          float g = texture2D(tDiffuse, uv).g;
+          float b = texture2D(tDiffuse, uv + vec2(caStrength, 0.0)).b;
+          vec3 color = vec3(r, g, b);
+          
+          // Shadows lift / highlights compress (S-curve contrast)
+          color = mix(vec3(0.5), color, 1.12);
+          color = max(vec3(0.0), color);
+          
+          float luma = dot(color, vec3(0.299, 0.587, 0.114));
+          
+          // Cool shadows, warm midtones, bright highlights
+          vec3 shadow_tint = vec3(0.82, 0.90, 1.08);
+          vec3 mid_tint = vec3(1.02, 1.00, 0.985);
+          vec3 hi_tint = vec3(1.07, 1.035, 0.975);
+          vec3 tinted = mix(shadow_tint, mid_tint, smoothstep(0.0, 0.5, luma));
+          tinted = mix(tinted, hi_tint, smoothstep(0.5, 1.0, luma));
+          color *= tinted;
+          
+          // Subtle desaturation for ancient/weathered look
+          color = mix(vec3(luma), color, 0.90);
+          
+          // High-quality temporal film grain
+          float grain = hash(uv * vec2(1920.0, 1080.0) + vec2(time * 13.5, time * 7.3)) - 0.5;
+          float grain2 = hash(uv * vec2(1920.0, 1080.0) * 0.5 + vec2(time * 9.1, time * 4.7)) - 0.5;
+          color += (grain * 0.65 + grain2 * 0.35) * 0.008;
+          
+          // Multi-layer vignette (strong)
+          float v1 = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+          float vignette = clamp(pow(max(0.0, 16.0 * v1), 0.22), 0.0, 1.0);
+          float vignette2 = clamp(pow(max(0.0, 9.0 * v1), 0.45), 0.0, 1.0);
+          color *= mix(0.72, 1.0, vignette * 0.6 + vignette2 * 0.4);
+          
+          gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+        }
+      `
+    };
+
+    // Post-Processing Composer Setup
+    let composer, ssaoPass, gradePass;
+    try {
+      composer = new EffectComposer(renderer);
+      const renderPass = new RenderPass(scene, camera);
+      composer.addPass(renderPass);
+
+      ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
+      ssaoPass.kernelRadius = 16;
+      ssaoPass.minDistance = 0.005;
+      ssaoPass.maxDistance = 0.15;
+      // SSAOPass r183 replaces every mesh material with an opaque normal material.
+      // Keep soft mist, water and cutout leaves out of that depth pass; the preceding
+      // RenderPass still draws them normally into the beauty image.
+      const aoExcluded = [];
+      scene.traverse((object) => {
+        if (!object.isMesh) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        if (materials.some(material => material.transparent || material.alphaTest > 0)) {
+          aoExcluded.push(object);
+        }
+      });
+      const renderAO = ssaoPass.render.bind(ssaoPass);
+      ssaoPass.render = (...args) => {
+        const visibility = aoExcluded.map(object => object.visible);
+        aoExcluded.forEach(object => { object.visible = false; });
+        try {
+          renderAO(...args);
+        } finally {
+          aoExcluded.forEach((object, index) => { object.visible = visibility[index]; });
+        }
+      };
+      composer.addPass(ssaoPass);
+
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.24, // strength
+        0.55, // radius
+        1.15  // threshold
+      );
+      composer.addPass(bloomPass);
+
+      composer.addPass(new OutputPass());
+
+      const fxaaPass = new ShaderPass(FXAAShader);
+      fxaaPass.material.uniforms.resolution.value.set(
+        1 / (window.innerWidth * renderer.getPixelRatio()),
+        1 / (window.innerHeight * renderer.getPixelRatio())
+      );
+      composer.addPass(fxaaPass);
+
+      gradePass = new ShaderPass(GradeShader);
+      composer.addPass(gradePass);
+    } catch (e) {
+      console.warn("Post-processing failed, falling back to basic rendering: ", e);
+      composer = null;
+    }
+
+    // Four-beat walk: three feet support the weight while one recovers.
+    // Contact points are sampled from absolute time, so planted feet do not slide
+    // and the gait remains identical at different frame rates or after a pause.
+    // Include the claws in the sole offset so the lowest visible vertex meets the rock.
+    colossusGroup.updateMatrixWorld(true);
+    const footSoleOffset = footFL.getWorldPosition(new THREE.Vector3()).y
+      - new THREE.Box3().setFromObject(footFL, true).min.y;
+    const gaitPeriod = 5.6;
+    const stanceFraction = 0.76;
+    const gaitLegs = [
+      { pivot: pivotFL, mesh: legFL, foot: footFL, phase: 0.5 },
+      { pivot: pivotFR, mesh: legFR, foot: footFR, phase: 0 },
+      { pivot: pivotBL, mesh: legBL, foot: footBL, phase: 0.75 },
+      { pivot: pivotBR, mesh: legBR, foot: footBR, phase: 0.25 }
+    ];
+    for (const leg of gaitLegs) {
+      leg.foot.traverse(object => { if (object.isMesh) object.castShadow = object.receiveShadow = true; });
+      leg.rest = new Float32Array(leg.mesh.geometry.attributes.position.array);
+      leg.mesh.geometry.attributes.position.setUsage(THREE.DynamicDrawUsage);
+      // The limb deforms beyond its rest bounds; only these four meshes skip culling.
+      leg.mesh.frustumCulled = false;
+    }
+    const gaitContact = new THREE.Vector3();
+    const gaitNextContact = new THREE.Vector3();
+    const gaitAnkle = new THREE.Vector3();
+    const gaitWorldRotation = new THREE.Quaternion();
+    const gaitFootRotation = new THREE.Quaternion();
+    const gaitUp = new THREE.Vector3(0, 1, 0);
+    const gaitRoutePosition = new THREE.Vector3();
+    const smoothStep5 = t => t * t * t * (t * (t * 6 - 15) + 10);
+
+    function sampleColossusRoute(time, position) {
+      // A broad oval replaces the abrupt end-of-path reversal.
+      const angle = time * (0.7 / 27) - Math.asin(10 / 27);
+      const x = -8 + 27 * Math.sin(angle);
+      position.set(x, guardianGroundY + footSoleOffset + 12.8, -119 + 9 * Math.cos(angle));
+      return Math.atan2(27 * Math.cos(angle), -9 * Math.sin(angle));
+    }
+
+    function sampleFootContact(time, leg, result) {
+      // Place the foot ahead at touchdown; the body travels over it during stance.
+      const yaw = sampleColossusRoute(time + gaitPeriod * stanceFraction * 0.5, result);
+      const x = leg.pivot.position.x, z = leg.pivot.position.z;
+      result.x += Math.cos(yaw) * x + Math.sin(yaw) * z;
+      result.z += -Math.sin(yaw) * x + Math.cos(yaw) * z;
+      result.y = guardianGroundY + footSoleOffset;
+      return yaw;
+    }
+
+    function updateColossus(time) {
+      const yaw = sampleColossusRoute(time, gaitRoutePosition);
+      colossusGroup.position.copy(gaitRoutePosition);
+      colossusGroup.rotation.y = yaw;
+      const cycle = time / gaitPeriod * Math.PI * 2;
+      colossusBody.position.y = -0.08 + Math.cos(cycle * 4) * 0.055;
+      colossusBody.rotation.set(Math.sin(cycle * 2 - 0.4) * 0.012, 0,
+        Math.sin(cycle - 0.5) * 0.023);
+      colossusGroup.updateMatrixWorld(true);
+
+      for (const leg of gaitLegs) {
+        const cycles = time / gaitPeriod + leg.phase;
+        const phase = cycles - Math.floor(cycles);
+        const contactTime = (Math.floor(cycles) - leg.phase) * gaitPeriod;
+        const contactYaw = sampleFootContact(contactTime, leg, gaitContact);
+        const nextYaw = sampleFootContact(contactTime + gaitPeriod, leg, gaitNextContact);
+        const swing = phase < stanceFraction ? 0 : (phase - stanceFraction) / (1 - stanceFraction);
+        const blend = smoothStep5(swing);
+        // Zero vertical velocity on both lift-off and touchdown.
+        const lift = Math.pow(Math.sin(swing * Math.PI), 2) * 0.85;
+        gaitAnkle.copy(gaitContact).lerp(gaitNextContact, blend);
+        gaitAnkle.y += lift;
+        leg.pivot.worldToLocal(gaitAnkle);
+        leg.foot.position.copy(gaitAnkle);
+        const yawDelta = Math.atan2(Math.sin(nextYaw - contactYaw), Math.cos(nextYaw - contactYaw));
+        gaitFootRotation.setFromAxisAngle(gaitUp, contactYaw + yawDelta * blend);
+        leg.pivot.getWorldQuaternion(gaitWorldRotation);
+        leg.foot.quaternion.copy(gaitWorldRotation.invert()).multiply(gaitFootRotation);
+
+        // Continuous skin bends through the knee instead of swinging as a rigid rod.
+        const positions = leg.mesh.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const offset = i * 3;
+          const t = THREE.MathUtils.clamp(-leg.rest[offset + 1] / 11, 0, 1);
+          positions.setXYZ(i,
+            leg.rest[offset] + gaitAnkle.x * t,
+            leg.rest[offset + 1] * (-gaitAnkle.y / 11),
+            leg.rest[offset + 2] + gaitAnkle.z * t + Math.sin(t * Math.PI) * lift * 0.7);
+        }
+        positions.needsUpdate = true;
+        leg.mesh.geometry.computeVertexNormals();
+      }
+      // Delayed, low-amplitude head motion counters the body's weight shift.
+      neckMesh.rotation.set(Math.sin(cycle * 2 - 0.9) * 0.025,
+        Math.sin(time * 0.17) * 0.07, -colossusBody.rotation.z * 0.4);
+      headMesh.rotation.x = -0.055 + Math.sin(cycle * 2 - 1.4) * 0.025;
+    }
+
+    function updateBirds(time) {
+      for (let i = 0; i < birdCount; i++) {
+        const state = birdState[i];
+        const angle = time * state.speed + state.phase;
+        const bx = 42 + Math.cos(angle) * state.radius;
+        const bz = bridgeZ + Math.sin(angle) * state.radius;
+        const by = 26 + state.heightOffset + Math.sin(time * 0.85 + state.phase) * 3;
+
+        dummy.position.set(bx, by, bz);
+        const heading = -angle + Math.PI / 2 + state.yawOffset;
+        dummy.rotation.set(
+          Math.sin(time * 2.2 + state.phase) * 0.06,
+          heading,
+          -0.24
+        );
+        dummy.scale.setScalar(state.scale);
+        dummy.updateMatrix();
+        birdMesh.setMatrixAt(i, dummy.matrix);
+      }
+      birdMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    function updateParticles(delta, time) {
+      const array = particleGeo.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        const idx = i * 3;
+        array[idx] -= particleSpeeds[i] * delta;
+        array[idx + 1] += Math.sin(time * 0.45 + i) * delta * 0.45;
+        if (array[idx] < -65) {
+          array[idx] = 65;
+          array[idx + 1] = -12 + Math.random() * 42;
+          array[idx + 2] = -95 + Math.random() * 125;
+        }
+      }
+      particleGeo.attributes.position.needsUpdate = true;
+
+      // Update high-altitude motes
+      const moteArray = moteGeo.attributes.position.array;
+      for (let i = 0; i < moteCount; i++) {
+        const idx = i * 3;
+        moteArray[idx + 1] -= moteSpeeds[i] * delta * 0.7; // slow descend
+        moteArray[idx] += Math.sin(time * 0.5 + i) * delta * 0.25; // slow sway
+        if (moteArray[idx + 1] < 15) {
+          moteArray[idx + 1] = 80;
+          moteArray[idx] = (Math.random() - 0.5) * 160;
+          moteArray[idx + 2] = -180 + Math.random() * 120;
+        }
+      }
+      moteGeo.attributes.position.needsUpdate = true;
+    }
+
+    // Animation Loop
+    
+    // --- V1 ENHANCEMENT: Magic Runes & Floating Particles ---
+    const v1_particlesGeo = new THREE.BufferGeometry();
+    const v1_pos = [];
+    for(let i=0; i<1000; i++) {
+        v1_pos.push((Math.random()-0.5)*200, Math.random()*100, (Math.random()-0.5)*200);
+    }
+    v1_particlesGeo.setAttribute('position', new THREE.Float32BufferAttribute(v1_pos, 3));
+    const v1_partMat = new THREE.PointsMaterial({map: mistTexture, color: 0xdacaa8, size: 0.10, transparent:true, opacity:0.28, depthWrite: false, blending: THREE.AdditiveBlending});
+    const v1_particles = new THREE.Points(v1_particlesGeo, v1_partMat);
+    scene.add(v1_particles);
+
+
+    
+
+
+    
+
+function animate(now) {
+      animationId = requestAnimationFrame(animate);
+      if (now === undefined) now = performance.now();
+
+      if (lastFrameTime) {
+        const frameDurationMs = now - lastFrameTime;
+        if (frameDurationMs > 30000 || document.visibilityState !== "visible") {
+          fpsResetState();
+        } else if (now > fpsWarmupEnd) {
+          const currentFps = 1000 / frameDurationMs;
+          fpsAccumulatedFrames++;
+          fpsAccumulatedTime += frameDurationMs;
+          if (currentFps < fpsMin) fpsMin = currentFps;
+          if (currentFps > fpsMax) fpsMax = currentFps;
+          fpsAvg = (fpsAccumulatedFrames * 1000) / fpsAccumulatedTime;
+          if (now - lastFpsUpdateTime >= 250) {
+            const domFpsElement = document.getElementById("fps-stats");
+            if (domFpsElement) {
+              domFpsElement.textContent = `CUR: ${formatFps(currentFps)} | MIN: ${formatFps(fpsMin)} | AVG: ${formatFps(fpsAvg)} | MAX: ${formatFps(fpsMax)}`;
+            }
+            lastFpsUpdateTime = now;
+          }
+        }
+      }
+      lastFrameTime = now;
+
+      const frameDelta = Math.min(clock.getDelta(), 0.05);
+      const delta = paused || document.hidden ? 0 : frameDelta * speedMultiplier * playbackSpeed;
+      simulationTime += delta;
+      const time = simulationTime;
+      if (autoCamera) cameraTime += delta;
+
+      if (!cameraInitialized || (autoCamera && delta > 0)) {
+        // Camera dolly path loop (72 seconds at normal speed)
+        const pathLoopTime = 72;
+        const progress = (cameraTime / pathLoopTime) % 1.0;
+        // Smooth speed changes linger on the bridge / guardian composition.
+        const cinematicProgress = progress - Math.sin(progress * Math.PI * 2) * 0.065;
+        const camBasePos = camPath.getPointAt(cinematicProgress);
+  
+        camera.position.copy(camBasePos);
+  
+        // Smooth camera look target drift
+        cameraTarget.set(
+          16 + Math.sin(cameraTime * 0.065) * 9,
+          17 + Math.cos(cameraTime * 0.08) * 3,
+          -60 + Math.sin(cameraTime * 0.06) * 5
+        );
+        // Middle storyboard beat reveals the guardian's grounded walk behind the bridge.
+        sampleColossusRoute(time, gaitRoutePosition);
+        gaitRoutePosition.y = guardianGroundY + 8;
+        cameraTarget.lerp(gaitRoutePosition, Math.pow(Math.sin(progress * Math.PI), 4));
+        if (!cameraInitialized) cameraTargetLag.copy(cameraTarget);
+        cameraTargetLag.lerp(cameraTarget, 1 - Math.pow(0.015, delta));
+  
+        camera.lookAt(cameraTargetLag);
+
+        cameraInitialized = true;
+      }
+
+      // Update shader uniforms
+      if (grassMaterial.userData.shader) {
+        grassMaterial.userData.shader.uniforms.time.value = time;
+      }
+      if (flowerMat.userData.shader) {
+        flowerMat.userData.shader.uniforms.time.value = time;
+      }
+      if (birdMaterial.userData.shader) {
+        birdMaterial.userData.shader.uniforms.time.value = time;
+      }
+      if (gradePass) {
+        gradePass.uniforms.time.value = time;
+      }
+
+      waterfallTexture.offset.y = time * 0.32;
+      mistLayers.forEach((layer, i) => {
+        layer.position.x = layer.userData.baseX + Math.sin(time * 0.035 + i) * 7;
+      });
+      updateColossus(time);
+      updateBirds(time);
+      updateParticles(delta, time);
+
+      if (composer) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
+    }
+
+    function resize() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      if (composer) {
+        composer.setSize(width, height);
+        // Find FXAA Pass if active and update
+        composer.passes.forEach((pass) => {
+          if (pass.material && pass.material.uniforms.resolution) {
+            pass.material.uniforms.resolution.value.set(
+              1 / (width * renderer.getPixelRatio()),
+              1 / (height * renderer.getPixelRatio())
+            );
+          }
+        });
+      }
+    }
+
+    window.addEventListener("resize", resize);
+    animate();
+
+    // Cleanup & Resource Disposal
+    let disposed = false;
+    function disposeMaterial(material) {
+      if (!material) return;
+      const materials = Array.isArray(material) ? material : [material];
+      materials.forEach((mat) => {
+        Object.keys(mat).forEach((key) => {
+          const value = mat[key];
+          if (value && value.isTexture) value.dispose();
+        });
+        mat.dispose();
+      });
+    }
+
+    function disposeScene() {
+      if (disposed) return;
+      disposed = true;
+      uiEvents.abort();
+      
+      // teardown cleanup
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      const fpsElem = document.getElementById("fps-stats");
+      if (fpsElem) fpsElem.remove();
+      
+      window.removeEventListener("pagehide", disposeScene);
+      window.removeEventListener("unload", disposeScene);
+      cancelAnimationFrame(animationId);
+      window.removeEventListener("resize", resize);
+      
+      scene.traverse((object) => {
+        if (object.shadow) object.shadow.dispose();
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) disposeMaterial(object.material);
+      });
+      
+      if (composer) {
+        composer.passes.forEach(pass => { if (pass.dispose) pass.dispose(); });
+        composer.dispose();
+      }
+      renderer.dispose();
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+    }
+
+    window.addEventListener("pagehide", disposeScene);
+    window.addEventListener("unload", disposeScene);
+  </script>
+</body>
+</html>
