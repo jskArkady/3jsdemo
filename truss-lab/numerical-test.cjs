@@ -28,6 +28,25 @@ assert.throws(()=>C.solve({...single,fixed:[]},E,A,[0,0,P,0]),/특이/);
 assert.throws(()=>C.solve({...single,nodes:[[0,0],[0,0]]},E,A,[0,0,P,0]),/길이/);
 assert.throws(()=>C.solve({...single,members:[[0,1],[1,0]]},E,A,[0,0,P,0]),/중복/);
 assert.throws(()=>C.linearSolve([[1,0],[0,1e-14]],[0,1]),/특이/);
+// Exercise the page's actual animation update, including end-point reflections.
+const advanceSource=html.slice(html.indexOf('function advance(dt)'),html.indexOf('function animate(time)'));
+function travel(x,direction,speed,steps){
+ const inputs={speed:{value:speed},position:{value:x}};
+ const ctx={loadX:x,direction,running:true,auto:false,cameraTime:0,$:id=>inputs[id],solve:()=>{}};
+ vm.createContext(ctx);vm.runInContext(advanceSource,ctx);
+ for(const dt of steps){ctx.advance(dt);assert(ctx.loadX>=0&&ctx.loadX<=8);}
+ return ctx;
+}
+near(travel(7.99,1,1,[.05]).loadX,7.97,1e-12);
+near(travel(.01,-1,1,[.05]).loadX,.03,1e-12);
+for(const speed of [.5,1,2])for(const [x,direction] of [[7.99,1],[.01,-1]]){
+ const at20=travel(x,direction,speed,Array(20).fill(1/20));
+ const at144=travel(x,direction,speed,Array(144).fill(1/144));
+ near(at20.loadX,at144.loadX,1e-12);assert.equal(at20.direction,at144.direction);
+}
+assert.equal(travel(7.96,1,1,[.05]).direction,-1);
+assert.equal(travel(.04,-1,1,[.05]).direction,1);
+near(travel(0,1,1,[25]).loadX,4,1e-12); // Multiple reflections in one update.
 const unstable=C.preset('pratt');unstable.members.pop();assert.throws(()=>C.solve(unstable,E,A,C.deckLoad(unstable,4,P)),/특이/);
 for(const [,script] of html.matchAll(/<script(?: type="module")?>([\s\S]*?)<\/script>/g))new Function('return (async()=>{'+script+'})');
 console.log(JSON.stringify({status:'PASS',scalarComparisons:checks,maxRelative,maxResidual,maxEquilibrium,outputs},null,2));

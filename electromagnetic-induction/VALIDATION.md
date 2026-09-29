@@ -28,11 +28,13 @@
 프로젝트 루트에서:
 
 ```sh
-node --experimental-vm-modules electromagnetic-induction/validate-numerics.cjs
+node electromagnetic-induction/validate-numerics.cjs
 flock /tmp/threejs-stem-browser.lock node electromagnetic-induction/validate-browser.cjs
 ```
 
 수치 테스트는 HTML의 실제 `Induction` 함수를 추출해서 실행하며 module script 구문도 검사한다. Node의 experimental VM 경고는 정상 안내이다.
+
+VM 모듈이 비활성화되어 있으면 검증기가 `--experimental-vm-modules`를 추가해 한 번 재실행합니다. 기존 Node 옵션과 스크립트 인자를 유지하며, 자식 검증기의 종료 코드를 반환합니다. 프로세스 시작 오류나 시그널 종료도 실패로 처리합니다.
 
 기준 N=40, B=0.5 T, A=0.05 m², rpm=30, R=40 Ω:
 

@@ -36,9 +36,11 @@
 WSL2 Node v24.16.0. 수치 테스트는 HTML의 `wave-model` 스크립트를 그대로 추출하여 실행한다. 복사한 별도 모델을 검증하지 않는다. module 스크립트 구문도 검사한다.
 
 ```sh
-node --experimental-vm-modules wave-interference/model-test.cjs
+node wave-interference/model-test.cjs
 flock /tmp/threejs-stem-browser.lock node wave-interference/browser-test.cjs
 ```
+
+VM 모듈이 비활성화되어 있으면 검증기가 `--experimental-vm-modules`를 추가해 한 번 재실행합니다. 기존 Node 옵션과 스크립트 인자를 유지하며, 자식 검증기의 종료 코드를 반환합니다. 프로세스 시작 오류나 시그널 종료도 실패로 처리합니다.
 
 |검증|허용오차|실측|
 |---|---:|---:|

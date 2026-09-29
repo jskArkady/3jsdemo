@@ -1,4 +1,11 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
+// Enable module syntax checks when invoked with plain `node`.
+if(typeof vm.SourceTextModule!=='function'){
+ if(process.execArgv.includes('--experimental-vm-modules'))throw Error('This Node runtime does not provide vm.SourceTextModule with --experimental-vm-modules enabled.');
+ const result=require('node:child_process').spawnSync(process.execPath,[...process.execArgv,'--experimental-vm-modules',__filename,...process.argv.slice(2)],{stdio:'inherit'});
+ if(result.error)throw result.error;
+ process.exit(result.status??1);
+}
 const html=fs.readFileSync(__dirname+'/electromagnetic-induction.html','utf8');const context={};vm.runInNewContext(html.match(/<script id="physics">([\s\S]*?)<\/script>/)[1]+';this.model=Induction',context);const {sample,advance,H}=context.model;
 new vm.SourceTextModule(html.match(/<script type="module">([\s\S]*?)<\/script>/)[1]);
 const p={rpm:30,B:.5,N:40,A:.05,R:40,polarity:1},peak=Math.PI;

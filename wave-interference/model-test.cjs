@@ -1,4 +1,11 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+// Enable module syntax checks when invoked with plain `node`.
+if(typeof vm.SourceTextModule!=='function'){
+ if(process.execArgv.includes('--experimental-vm-modules'))throw Error('This Node runtime does not provide vm.SourceTextModule with --experimental-vm-modules enabled.');
+ const result=require('node:child_process').spawnSync(process.execPath,[...process.execArgv,'--experimental-vm-modules',__filename,...process.argv.slice(2)],{stdio:'inherit'});
+ if(result.error)throw result.error;
+ process.exit(result.status??1);
+}
 const html=fs.readFileSync(__dirname+'/wave-interference.html','utf8'),source=html.match(/<script id="wave-model">([\s\S]*?)<\/script>/)[1];
 const model=vm.runInNewContext(source+';({sample,advance,defaults,setProbe,DT,TAU})');
 new vm.SourceTextModule(html.match(/<script type="module">([\s\S]*?)<\/script>/)[1]);
