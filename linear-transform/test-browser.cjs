@@ -1,7 +1,7 @@
 const {chromium}=require('/home/bayta/.cache/ms-playwright-go/1.57.0/package');
 const http=require('http'),fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const root=path.resolve(__dirname,'..');
-const server=http.createServer((req,res)=>{const file=path.join(root,decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(root+'/')){res.writeHead(403).end();return;}fs.readFile(file,(err,data)=>{if(err){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.html')?'text/html;charset=utf-8':'text/plain');res.end(data);});});
+const server=require('../tests/static-server.cjs')();
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({executablePath:'/snap/chromium/current/usr/lib/chromium-browser/chrome',headless:true,env:{...process.env,FONTCONFIG_FILE:'/tmp/abyssal-fonts.conf',LD_LIBRARY_PATH:'/snap/chromium/current/usr/lib/x86_64-linux-gnu:/snap/gnome-46-2404/current/usr/lib/x86_64-linux-gnu'},args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 try{const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('404'))errors.push(m.text());});
 const url=`http://127.0.0.1:${server.address().port}/linear-transform/linear-transform.html`;await page.goto(url);await page.waitForFunction(()=>window.linearLab,{timeout:120000});

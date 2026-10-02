@@ -6,6 +6,7 @@
   <title>Ruined Portal Test Chamber</title>
   <link rel="icon" href="data:,">
   <style>
+@layer demo {
     *, *::before, *::after { box-sizing: border-box; }
     html, body {
       width: 100%;
@@ -81,7 +82,9 @@
       .scene-footer { bottom: 10px; }
       .controls { padding: 9px; }
     }
-  </style>
+  }
+</style>
+<link rel="stylesheet" href="../shared/demo-ui.css">
   <script type="importmap">
     {
       "imports": {
@@ -91,11 +94,11 @@
     }
   </script>
 </head>
-<body>
+<body class="demo-ui demo-scene">
   <div id="stage"></div>
   <div id="fps-stats" aria-label="프레임 속도">FPS · 측정 준비 중</div>
   <header class="scene-header">
-    <a href="../index.html">← 갤러리로</a>
+    <a href="../index.html">← 데모 갤러리</a>
     <div class="eyebrow">THREE.JS / CINEMATIC EXPLORATION</div>
     <h1>Ruined Portal Test Chamber</h1>
     <p>폐허 속 연결된 포털과 간헐적으로 깨어나는 기계 장치.</p>

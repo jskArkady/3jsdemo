@@ -1,7 +1,7 @@
 const {chromium}=require('/home/bayta/.cache/ms-playwright-go/1.57.0/package');
 const fs=require('node:fs'),http=require('node:http'),assert=require('node:assert/strict');
 const html=fs.readFileSync(__dirname+'/wave-interference.html','utf8');
-const server=http.createServer((req,res)=>{if(req.url==='/favicon.ico'){res.writeHead(204);return res.end();}res.setHeader('Content-Type','text/html');res.end(html);});
+const server=require('../tests/static-server.cjs')();
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({executablePath:'/snap/chromium/current/usr/lib/chromium-browser/chrome',headless:true,env:{...process.env,FONTCONFIG_FILE:'/tmp/abyssal-fonts.conf',LD_LIBRARY_PATH:'/snap/chromium/current/usr/lib/x86_64-linux-gnu:/snap/gnome-46-2404/current/usr/lib/x86_64-linux-gnu'},args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 try{const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 const url=`http://127.0.0.1:${server.address().port}/wave-interference/wave-interference.html?test=1`;await page.goto(url);await page.waitForFunction(()=>window.__wave,null,{timeout:90000});

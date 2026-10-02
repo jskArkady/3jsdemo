@@ -6,6 +6,7 @@
   <title>260831 V2 — The Shape of Chance</title>
   <link rel="icon" href="data:,">
   <style>
+@layer demo {
     :root {
       color-scheme: dark;
       --ink: #050711;
@@ -426,7 +427,9 @@
         #pause-label { display: inline; }
       }
     }
-  </style>
+  }
+</style>
+<link rel="stylesheet" href="../shared/demo-ui.css">
   <script type="importmap">
     {
       "imports": {
@@ -436,9 +439,14 @@
     }
   </script>
 </head>
-<body>
+<body class="demo-ui demo-probability">
   <main id="stage" aria-label="The Shape of Chance, an interactive Galton board releasing 1000 independent trials over two seconds" aria-describedby="screen-summary distribution-summary">
+    <p id="screen-summary" class="sr-only">A live probability experiment with 1000 independent physical trials released over two seconds. Every active ball responds to gravity, drag, pin impacts, guide rails, and slot walls while ball-to-ball collisions are ignored. Pale blue glass bars show observed outcomes; the lilac glass curve shows the expected binomial distribution.</p>
+    <p id="distribution-summary" class="sr-only">No outcomes have been observed yet.</p>
+    <noscript><p class="noscript-message">This probability experiment needs JavaScript and WebGL. Enable JavaScript to run the simulation.</p></noscript>
+  </main>
     <header id="identity">
+      <a href="../index.html">← 데모 갤러리</a>
       <div class="title-lockup">
         <span class="index">Kinetic study · 0831</span>
         <h1>The Shape of Chance</h1>
@@ -446,12 +454,12 @@
       </div>
       <span id="view-state" aria-hidden="true">Live</span>
     </header>
+    <footer id="control-deck">
     <aside id="legend" aria-label="Chart legend">
       <span class="observed"><i aria-hidden="true"></i>Observed</span>
       <span class="expected"><i aria-hidden="true"></i>Expected · p=.5</span>
       <span class="axis-key">k · right turns · 0–12</span>
     </aside>
-    <footer id="control-deck">
       <output id="telemetry">
         <span class="progress-orbit" aria-hidden="true">
           <span id="progress-bar"></span>
@@ -479,10 +487,6 @@
         </button>
       </nav>
     </footer>
-    <p id="screen-summary" class="sr-only">A live probability experiment with 1000 independent physical trials released over two seconds. Every active ball responds to gravity, drag, pin impacts, guide rails, and slot walls while ball-to-ball collisions are ignored. Pale blue glass bars show observed outcomes; the lilac glass curve shows the expected binomial distribution.</p>
-    <p id="distribution-summary" class="sr-only">No outcomes have been observed yet.</p>
-    <noscript><p class="noscript-message">This probability experiment needs JavaScript and WebGL. Enable JavaScript to run the simulation.</p></noscript>
-  </main>
 
   <script type="module">
     import * as THREE from "three";

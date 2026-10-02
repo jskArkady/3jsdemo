@@ -6,6 +6,7 @@
   <title>Ancient Cliff Sanctuary</title>
   <link rel="icon" href="data:,">
   <style>
+@layer demo {
     *, *::before, *::after { box-sizing: border-box; }
     html, body {
       width: 100%;
@@ -81,7 +82,9 @@
       .scene-footer { bottom: 10px; }
       .controls { padding: 9px; }
     }
-  </style>
+  }
+</style>
+<link rel="stylesheet" href="../shared/demo-ui.css">
   <script type="importmap">
     {
       "imports": {
@@ -91,11 +94,11 @@
     }
   </script>
 </head>
-<body>
+<body class="demo-ui demo-scene">
   <div id="stage"></div>
   <div id="fps-stats" aria-label="프레임 속도">FPS · 측정 준비 중</div>
   <header class="scene-header">
-    <a href="../index.html">← 갤러리로</a>
+    <a href="../index.html">← 데모 갤러리</a>
     <div class="eyebrow">THREE.JS / CINEMATIC EXPLORATION</div>
     <h1>Ancient Cliff Sanctuary</h1>
     <p>협곡의 순례길과 고대 성소, 거대한 수호자의 느린 발걸음.</p>

@@ -2,7 +2,7 @@ const {chromium}=require('/home/bayta/.cache/ms-playwright-go/1.57.0/package');
 const fs=require('node:fs'),http=require('node:http'),assert=require('node:assert/strict');
 const file=__dirname+'/truss-lab.html',errors=[];
 const seam=`window.__test={renderer,scene,camera,bars:()=>bars,joints:()=>joints,point,render,advance,solve,dispose,resize,getModel:()=>model,result:()=>result,state:()=>({running,auto,view,cameraTime,disposed,last,position:loadX,raf}),resources:()=>({geometries:geometries.size,materials:materials.size}),fail:()=>{model.members=[];solve();}};`;
-const server=http.createServer((req,res)=>{if(req.url==='/favicon.ico'){res.writeHead(204);return res.end();}res.setHeader('Content-Type','text/html');res.end(fs.readFileSync(file,'utf8').replace('reset();resize();render();restart();',seam+'reset();resize();render();restart();'));});
+const server=require('../tests/static-server.cjs')({transformHtml:html=>html.replace('reset();resize();render();restart();',seam+'reset();resize();render();restart();')});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${server.address().port}/truss-lab/truss-lab.html`;
 const browser=await chromium.launch({executablePath:'/snap/chromium/current/usr/lib/chromium-browser/chrome',headless:true,env:{...process.env,FONTCONFIG_FILE:'/tmp/abyssal-fonts.conf',LD_LIBRARY_PATH:'/snap/chromium/current/usr/lib/x86_64-linux-gnu:/snap/gnome-46-2404/current/usr/lib/x86_64-linux-gnu'},args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
 try{

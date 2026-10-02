@@ -6,6 +6,7 @@
   <title>260703 V1 — The Shape of Chance</title>
   <link rel="icon" href="data:,">
   <style>
+@layer demo {
     *, *::before, *::after { box-sizing: border-box; }
     html, body {
       width: 100%;
@@ -118,7 +119,9 @@
         font-size: 18px;
       }
     }
-  </style>
+  }
+</style>
+<link rel="stylesheet" href="../shared/demo-ui.css">
   <script type="importmap">
     {
       "imports": {
@@ -128,15 +131,16 @@
     }
   </script>
 </head>
-<body>
+<body class="demo-ui demo-probability">
   <main id="stage" aria-label="The Shape of Chance kinetic study">
+  </main>
     <header id="identity">
+      <a href="../index.html">← 데모 갤러리</a>
       <span class="index">Kinetic study · 0627</span>
       <h1>The Shape<br>of Chance</h1>
       <p>640 paths / one point of origin</p>
     </header>
-    <button id="reset" type="button" aria-label="Restart simulation" title="Restart">↻</button>
-  </main>
+  <footer class="scene-footer"><div class="controls"><button id="reset" type="button" aria-label="Restart simulation" title="Restart">↻ 다시 시작</button></div></footer>
 
   <script type="module">
     import * as THREE from "three";

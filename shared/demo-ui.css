@@ -1,0 +1,326 @@
+/* Shared UI for the gallery demos. Scene-specific layouts live in @layer demo.
+   Keep canvas backgrounds, data colors and Three.js rendering in each demo. */
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ui-page: #111114;
+  --ui-surface: #1b1b20;
+  --ui-raised: #24242b;
+  --ui-ink: #f4f4f5;
+  --ui-muted: #b6b6c0;
+  --ui-line: #3d3d48;
+  --ui-accent: #2457ff;
+  --ui-accent-hover: #1944d6;
+  --ui-link: #8aa4ff;
+  --ui-highlight: #ff5a36;
+  --ui-danger: #ffb4ab;
+  background: var(--ui-page);
+  color: var(--ui-ink);
+}
+
+.demo-ui { font-size: 13px; }
+.demo-ui :is(button, select, input, summary) { font-family: inherit; }
+.demo-ui :is(button, select, input[type="number"], input[type="text"]) {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--ui-line);
+  border-radius: 0;
+  background: var(--ui-raised);
+  color: var(--ui-ink);
+  box-shadow: none;
+  text-shadow: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-transform: none;
+  transition: background-color 120ms, border-color 120ms;
+}
+.demo-ui :is(button, select) { cursor: pointer; }
+.demo-ui select option { background: var(--ui-surface); color: var(--ui-ink); }
+.demo-ui :is(button, select):hover:not(:disabled) {
+  background: #30303a;
+  border-color: var(--ui-link);
+  transform: none;
+}
+.demo-ui button[aria-pressed="true"] {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: #fff;
+  box-shadow: none;
+}
+.demo-ui button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ui-accent-hover); }
+.demo-ui button:active:not(:disabled) { background: var(--ui-accent-hover); color: #fff; transform: none; }
+.demo-ui :is(button, select, input):disabled { opacity: .45; cursor: not-allowed; }
+.demo-ui :focus-visible { outline: 2px solid var(--ui-link); outline-offset: 3px; }
+.demo-ui input { accent-color: var(--ui-link); }
+.demo-ui input[type="range"] { min-height: 24px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.demo-ui input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; }
+.demo-ui a { color: var(--ui-link); text-underline-offset: 3px; }
+.demo-ui header a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  pointer-events: auto;
+}
+.demo-ui header a:hover { text-decoration: underline; }
+.demo-ui h1 {
+  margin: 8px 0;
+  color: var(--ui-ink);
+  font-family: inherit;
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: -.04em;
+  line-height: 1.2;
+}
+.demo-ui :is(h2, .section-title) {
+  color: var(--ui-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.6;
+}
+.demo-ui :is(.eyebrow, #identity .index) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: var(--ui-muted);
+  font: 600 10px/1.6 ui-monospace, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.demo-ui :is(.eyebrow, #identity .index)::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 0;
+  background: var(--ui-highlight);
+  box-shadow: none;
+}
+.demo-ui :is(header p, label, .control, .field, p, small, .note, .hint, .muted, .chart-title, .caption, .telemetry-label, .telemetry-meta) {
+  color: var(--ui-muted);
+}
+.demo-ui :is(header p, .knowledge p, .knowledge li) { font-size: 12px; line-height: 1.8; }
+.demo-ui :is(output, .value, .field output, .control output) {
+  color: var(--ui-link);
+  font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.demo-ui :is(.panel, aside:not(#legend), .chart, #graphbox, .controls, #controls, #control-deck) {
+  border-color: var(--ui-line);
+  border-radius: 0;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.demo-ui :is(.section, .divider, hr) { border-color: var(--ui-line); }
+.demo-ui :is(.metric, .stat) {
+  border: 1px solid var(--ui-line);
+  border-radius: 0;
+  background: var(--ui-surface);
+  box-shadow: none;
+}
+.demo-ui :is(.metric span, .stat small) { color: var(--ui-muted); }
+.demo-ui :is(.metric strong, .stat strong) { color: var(--ui-ink); font-variant-numeric: tabular-nums; }
+.demo-ui :is(.readout, #readout, #stats, #values, .detail) { color: var(--ui-ink); border-radius: 0; }
+.demo-ui #readout { background: var(--ui-surface); }
+.demo-ui :is(#status, #scene-status, #fps, #fps-stats, .badge, .caption strong) { color: var(--ui-muted); }
+.demo-ui :is(.knowledge, .noscript-message) {
+  padding: 12px;
+  border: 1px solid var(--ui-line);
+  border-radius: 0;
+  background: var(--ui-raised);
+  color: var(--ui-ink);
+}
+.demo-ui summary { color: var(--ui-ink); font-size: 12px; cursor: pointer; }
+.demo-ui .knowledge > summary { color: var(--ui-ink); font-size: 12px; }
+.demo-ui .knowledge h3 { color: var(--ui-ink); }
+.demo-ui .knowledge .knowledge-formula {
+  border-color: var(--ui-link);
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+}
+.demo-ui .knowledge a { color: var(--ui-link); }
+.demo-ui #error {
+  background: #2b2023;
+  color: var(--ui-danger);
+  border: 1px solid #b96868;
+  border-radius: 0;
+}
+.demo-ui :is(#input-error, #warning) { color: var(--ui-danger); }
+
+/* Lab layouts retain their stage dimensions and visualization palettes. */
+.demo-lab { background: var(--ui-page); }
+.demo-lab main > * { min-width: 0; }
+.demo-lab header { border-color: var(--ui-line); background: transparent; }
+.demo-lab :is(.scene, .scene-wrap, #stage) { border-color: var(--ui-line); border-radius: 0; }
+.demo-lab :is(#legend, .legend) { border-color: var(--ui-line); border-radius: 0; }
+.demo-lab .graphs canvas { border: 1px solid var(--ui-line); border-radius: 0; background: var(--ui-surface); }
+.demo-lab :is(.row, .buttons, .control-row) { gap: 8px; }
+.demo-lab :is(.panel, aside:not(#legend)) { scrollbar-width: thin; scrollbar-color: var(--ui-line) var(--ui-surface); }
+.demo-lab #pad { border-color: var(--ui-muted); border-radius: 0; }
+
+/* Readable chrome over cinematic scenes and probability experiments. */
+.demo-scene header, .demo-probability #identity {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  right: auto;
+  z-index: 6;
+  display: block;
+  width: fit-content;
+  max-width: min(480px, calc(100vw - 48px));
+  padding: 16px 20px;
+  border: 1px solid var(--ui-line);
+  border-top: 3px solid var(--ui-highlight);
+  border-radius: 0;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  font-family: inherit;
+  text-shadow: none;
+  pointer-events: none;
+  opacity: 1;
+  animation: none;
+}
+.demo-scene header::before, .demo-probability #identity::before, .demo-probability #identity::after { content: none; }
+.demo-scene footer, .demo-probability #control-deck, .demo-probability > .scene-footer {
+  position: fixed;
+  inset: auto 24px 24px 24px;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 16px;
+  pointer-events: none;
+}
+.demo-scene :is(.controls, #controls), .demo-probability #control-deck, .demo-probability .controls {
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--ui-line);
+  pointer-events: auto;
+}
+.demo-scene :is(.control-row, #controls) { gap: 8px; }
+.demo-scene :is(.telemetry, #telemetry, #fps-stats) {
+  top: 24px;
+  right: 24px;
+  padding: 8px 12px;
+  border: 1px solid var(--ui-line);
+  border-radius: 0;
+  background: var(--ui-surface);
+  color: var(--ui-muted);
+  text-shadow: none;
+  font: 11px/1.7 ui-monospace, monospace;
+}
+.demo-scene .live { color: var(--ui-link); }
+.demo-scene .caption { display: none; }
+
+.demo-probability #identity h1 { white-space: normal; }
+.demo-probability #identity p { display: flex; margin: 8px 0 0; font: 11px/1.6 ui-monospace, monospace; letter-spacing: normal; }
+.demo-probability #view-state {
+  display: inline-flex;
+  margin-top: 12px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--ui-line);
+  border-radius: 0;
+  background: var(--ui-raised);
+  color: var(--ui-muted);
+  box-shadow: none;
+}
+.demo-probability #view-state::before { background: var(--ui-link); box-shadow: none; }
+.demo-probability:has(#stage.is-paused) #view-state::before { background: var(--ui-highlight); }
+.demo-probability #control-deck { left: auto; width: min(520px, calc(100vw - 48px)); align-items: center; flex-wrap: wrap; }
+.demo-probability #legend {
+  position: static;
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ui-line);
+  background: transparent;
+  backdrop-filter: none;
+  font: 600 10px/1.5 ui-monospace, monospace;
+  letter-spacing: normal;
+  text-shadow: none;
+}
+.demo-probability #legend .axis-key { position: static; transform: none; padding: 0; white-space: normal; }
+.demo-probability #legend .observed { flex-direction: row; }
+.demo-probability #telemetry {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  color: var(--ui-muted);
+  font-size: 11px;
+  letter-spacing: normal;
+}
+.demo-probability #controls { flex: none; display: flex; gap: 8px; padding: 0; }
+.demo-probability .control-button { flex-direction: row; gap: 6px; min-width: 40px; min-height: 40px; }
+.demo-probability .control-icon { color: inherit; text-shadow: none; font-size: 16px; }
+.demo-probability :is(#sample-count, #moment-readout) { color: var(--ui-ink); font-family: ui-monospace, monospace; }
+.demo-probability #run-state { color: var(--ui-link); }
+.demo-probability .telemetry-stat { border-color: var(--ui-line); }
+.demo-probability .progress-track { background: var(--ui-line); }
+.demo-probability .progress-track #progress-bar { background: var(--ui-link); box-shadow: none; }
+.demo-probability .progress-orbit { background: var(--ui-raised); box-shadow: none; }
+.demo-probability .progress-orbit #progress-bar { background: conic-gradient(var(--ui-link) 0 var(--progress-angle), var(--ui-line) var(--progress-angle) 360deg); filter: none; }
+.demo-probability > .scene-footer #reset { position: static; width: auto; height: auto; font-size: 12px; }
+
+@media (max-width: 650px) {
+  .demo-scene header, .demo-probability #identity { top: 12px; left: 12px; max-width: calc(100vw - 24px); padding: 12px; }
+  .demo-scene header { top: 56px; }
+  .demo-scene header p { max-width: none; }
+  .demo-scene :is(.telemetry, #telemetry, #fps-stats) { top: 12px; left: auto; right: 12px; padding: 5px 8px; font-size: 10px; }
+  .demo-scene .telemetry > :not(#fps) { display: none; }
+  .demo-scene #telemetry { font-size: 0; line-height: 0; }
+  .demo-scene #telemetry > :not(#fps) { display: none; }
+  .demo-scene #telemetry #fps { font-size: 10px; line-height: 1.7; }
+  .demo-scene footer, .demo-probability #control-deck, .demo-probability > .scene-footer { left: 12px; right: 12px; bottom: 12px; width: auto; }
+  .demo-scene :is(.controls, #controls) { width: 100%; }
+  .demo-probability #control-deck { flex-wrap: wrap; gap: 12px; }
+  .demo-probability #telemetry { flex-basis: 100%; }
+  .demo-probability #controls { width: 100%; }
+  .demo-probability .control-button { flex: 1; }
+  .demo-probability .telemetry-meta { font-size: 10px; }
+  .demo-probability #view-state { display: none; }
+}
+
+@media (max-width: 650px), (max-height: 500px) {
+  /* Keep the canvas at its original size; let the surrounding UI scroll. */
+  html:has(.demo-probability) { height: auto; min-height: 100%; overflow: auto; }
+  .demo-probability { display: flex; flex-direction: column; align-items: center; height: auto; min-height: 100svh; overflow: visible; }
+  .demo-probability #stage { flex: none; }
+  .demo-probability #identity { position: static; order: -1; align-self: stretch; width: auto; margin: 12px; }
+  .demo-probability #control-deck, .demo-probability > .scene-footer { position: static; align-self: center; width: calc(100% - 24px); max-width: 520px; margin: 12px; }
+  .demo-probability .controls { width: 100%; }
+}
+
+@media (max-height: 500px) {
+  .demo-lab header a { min-height: 24px; margin-bottom: 0; }
+  .demo-lab header .eyebrow { display: none; }
+  .demo-lab header h1 { font-size: 20px; margin: 4px 0; }
+  .demo-scene header, .demo-probability #identity { top: 12px; left: 12px; padding: 8px 12px; max-width: calc(100vw - 170px); }
+  .demo-scene header a, .demo-probability header a { margin-bottom: 0; }
+  .demo-scene h1, .demo-probability #identity h1 { font-size: 20px; margin: 4px 0; }
+  .demo-scene .eyebrow, .demo-scene header p, .demo-probability #identity :is(.index, p, #view-state) { display: none; }
+  .demo-scene footer, .demo-probability #control-deck, .demo-probability > .scene-footer { bottom: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-ui :is(button, select, input, #progress-bar) { transition: none; }
+}
